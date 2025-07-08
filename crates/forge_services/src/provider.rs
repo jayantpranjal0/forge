@@ -177,7 +177,7 @@ impl ProviderService for ForgeProviderService {
         })
     }
 
-    async fn update_provider(&self, provider: Provider) -> Result<()> {
+    async fn set_provider(&self, provider: Provider) -> Result<()> {
         println!("Updating provider: {}", provider.id());
         
         // Check if we have a cached client

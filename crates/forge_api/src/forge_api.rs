@@ -182,9 +182,9 @@ impl<A: Services, F: CommandInfra> API for ForgeAPI<A, F> {
 
     async fn update_provider(&self, provider: Provider) {
         // Update the provider service
-        if let Ok(_) = self.services.provider_service().update_provider(provider.clone()).await {
+        if let Ok(_) = self.services.provider_service().set_provider(provider.clone()).await {
             // Also update the provider registry cache
-            if let Ok(_) = self.services.provider_registry().update_provider(provider).await {
+            if let Ok(_) = self.services.provider_registry().set_provider(provider).await {
                 tracing::info!("Provider updated successfully in both service and registry");
             } else {
                 tracing::warn!("Failed to update provider registry cache");

@@ -61,7 +61,7 @@ impl<F: EnvironmentInfra> ProviderRegistry for ForgeProviderRegistry<F> {
         }
     }
 
-    async fn update_provider(&self, provider: Provider) -> anyhow::Result<()> {
+    async fn set_provider(&self, provider: Provider) -> anyhow::Result<()> {
         // Update the cache with the new provider
         *self.cache.write().await = Some(provider);
         Ok(())

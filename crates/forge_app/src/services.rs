@@ -93,7 +93,7 @@ pub trait ProviderService: Send + Sync {
     ) -> ResultStream<ChatCompletionMessage, anyhow::Error>;
     async fn models(&self, provider: Provider) -> anyhow::Result<Vec<Model>>;
     fn providers(&self) -> Vec<ProviderDetails>;
-    async fn update_provider(&self, provider: Provider) -> anyhow::Result<()>;
+    async fn set_provider(&self, provider: Provider) -> anyhow::Result<()>;
     fn update_available_providers(&self, provider: ProviderDetails);
 }
 
@@ -292,7 +292,7 @@ pub trait AuthService: Send + Sync {
 #[async_trait::async_trait]
 pub trait ProviderRegistry: Send + Sync {
     async fn get_provider(&self, config: AppConfig) -> anyhow::Result<Provider>;
-    async fn update_provider(&self, provider: Provider) -> anyhow::Result<()>;
+    async fn set_provider(&self, provider: Provider) -> anyhow::Result<()>;
 }
 
 /// Core app trait providing access to services and repositories.
@@ -384,8 +384,8 @@ impl<I: Services> ProviderService for I {
     fn providers(&self) -> Vec<ProviderDetails> {
         self.provider_service().providers()
     }
-    async fn update_provider(&self, provider: Provider) -> anyhow::Result<()> {
-        self.provider_service().update_provider(provider).await
+    async fn set_provider(&self, provider: Provider) -> anyhow::Result<()> {
+        self.provider_service().set_provider(provider).await
     }
     fn update_available_providers(&self, provider: ProviderDetails) {
         self.provider_service().update_available_providers(provider);
@@ -586,8 +586,8 @@ impl<I: Services> ProviderRegistry for I {
         self.provider_registry().get_provider(config).await
     }
 
-    async fn update_provider(&self, provider: Provider) -> anyhow::Result<()> {
-        self.provider_registry().update_provider(provider).await
+    async fn set_provider(&self, provider: Provider) -> anyhow::Result<()> {
+        self.provider_registry().set_provider(provider).await
     }
 }
 
