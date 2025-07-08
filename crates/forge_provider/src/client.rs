@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use anyhow::{Context as _, Result};
 use forge_domain::{
-    ChatCompletionMessage, Context, HttpConfig, Model, ModelId, Provider, ResultStream, RetryConfig
+    ChatCompletionMessage, Context, HttpConfig, Model, ModelId, Provider, ResultStream, RetryConfig,
 };
 use reqwest::redirect::Policy;
 use reqwest::Url;
@@ -65,7 +65,10 @@ impl Client {
                     .anthropic_version("2023-06-01".to_string())
                     .build()
                     .with_context(|| {
-                        format!("Failed to initialize Anthropic client with URL: {}", details.base_url)
+                        format!(
+                            "Failed to initialize Anthropic client with URL: {}",
+                            details.base_url
+                        )
                     })?,
             ),
         };
@@ -77,9 +80,7 @@ impl Client {
         })
     }
 
-    pub async fn update_provider(
-        &mut self, provider: Provider,
-    ){
+    pub async fn update_provider(&mut self, provider: Provider) {
         match self.inner.as_ref() {
             InnerClient::OpenAICompat(inner) => {
                 let mut new_inner = inner.clone();
@@ -88,7 +89,11 @@ impl Client {
             }
             InnerClient::Anthropic(inner) => {
                 let mut new_inner = inner.clone();
-                new_inner.update_provider(provider.api_key().to_string(), Url::parse(&provider.base_url()).unwrap(), "2023-06-01".to_string());
+                new_inner.update_provider(
+                    provider.api_key().to_string(),
+                    Url::parse(provider.base_url()).unwrap(),
+                    "2023-06-01".to_string(),
+                );
                 self.inner = Arc::new(InnerClient::Anthropic(new_inner));
             }
         }
@@ -158,6 +163,7 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use forge_domain::{Provider, ProviderDetails};
+
     use super::*;
 
     #[tokio::test]

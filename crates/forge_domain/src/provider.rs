@@ -1,8 +1,8 @@
+use anyhow::{anyhow, Result};
 use derive_more::Display;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use url::Url;
-use anyhow::{Result, anyhow};
 
 #[derive(Debug, Clone)]
 pub enum Provider {
@@ -24,16 +24,13 @@ pub struct ProviderDetails {
 /// Configuration for multiple providers
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ProviderConfig {
-    pub provider_id: Option<String>,  // ID of the currently active provider
+    pub provider_id: Option<String>, // ID of the currently active provider
     pub providers: Vec<ProviderDetails>,
 }
 
 impl ProviderConfig {
     pub fn new(provider_id: Option<String>, providers: Vec<ProviderDetails>) -> Self {
-        Self {
-            provider_id,
-            providers,
-        }
+        Self { provider_id, providers }
     }
 
     pub fn get_provider(&self) -> Result<Provider> {
@@ -106,10 +103,13 @@ impl ProviderConfig {
 
 impl Provider {
     pub fn new(provider_config: &ProviderConfig) -> Result<Self> {
-        let provider_id = provider_config.provider_id.as_ref()
+        let provider_id = provider_config
+            .provider_id
+            .as_ref()
             .ok_or_else(|| anyhow!("No active provider ID set"))?;
 
-        let provider_details = provider_config.providers
+        let provider_details = provider_config
+            .providers
             .iter()
             .find(|p| &p.id == provider_id)
             .ok_or_else(|| anyhow!("Provider ID '{}' not found in providers list", provider_id))?;
@@ -121,7 +121,9 @@ impl Provider {
     pub fn to_base_url(&self) -> Url {
         match self {
             Provider::OpenAI(details) => Url::parse(&details.base_url).expect("Invalid OpenAI URL"),
-            Provider::Anthropic(details) => Url::parse(&details.base_url).expect("Invalid Anthropic URL"),
+            Provider::Anthropic(details) => {
+                Url::parse(&details.base_url).expect("Invalid Anthropic URL")
+            }
         }
     }
 
@@ -169,7 +171,7 @@ impl Provider {
 }
 
 impl ProviderDetails {
-    pub fn new (
+    pub fn new(
         id: String,
         name: String,
         description: String,
@@ -183,7 +185,11 @@ impl ProviderDetails {
             description,
             api_key,
             provider_type,
-            base_url: if base_url.ends_with('/') { base_url } else { format!("{}/", base_url) },
+            base_url: if base_url.ends_with('/') {
+                base_url
+            } else {
+                format!("{base_url}/")
+            },
         }
     }
     pub fn name(&self) -> &str {

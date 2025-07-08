@@ -50,8 +50,8 @@ fn supports_open_router_params(_provider: &Provider) -> bool {
 
 //     #[test]
 //     fn test_supports_open_router_params() {
-//         assert!(supports_open_router_params(&Provider::antinomy("antinomy")));
-//         assert!(supports_open_router_params(&Provider::open_router(
+//         assert!(supports_open_router_params(&Provider::antinomy("antinomy"
+// )));         assert!(supports_open_router_params(&Provider::open_router(
 //             "open-router"
 //         )));
 
@@ -59,6 +59,6 @@ fn supports_open_router_params(_provider: &Provider) -> bool {
 //         assert!(!supports_open_router_params(&Provider::requesty(
 //             "requesty"
 //         )));
-//         assert!(!supports_open_router_params(&Provider::anthropic("claude")));
-//     }
+//         assert!(!supports_open_router_params(&Provider::anthropic("claude"
+// )));     }
 // }

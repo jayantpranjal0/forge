@@ -29,14 +29,15 @@ impl<F: EnvironmentInfra> ProviderRegistry for ForgeProviderRegistry<F> {
         } else {
             drop(provider);
             let provider_config = ProviderConfig::default();
-            
-            let resolved_config = provider::resolve_env_provider(&provider_config, self.infra.as_ref());
-            let mut new_provider_config = ProviderConfig {
-                provider_id: None,
-                providers: resolved_config,
-            };
+
+            let resolved_config =
+                provider::resolve_env_provider(&provider_config, self.infra.as_ref());
+            let mut new_provider_config =
+                ProviderConfig { provider_id: None, providers: resolved_config };
             // Check if a provider with forge is already there
-            let has_forge_provider = new_provider_config.providers.iter()
+            let has_forge_provider = new_provider_config
+                .providers
+                .iter()
                 .any(|p| p.id.to_lowercase().contains("forge"));
 
             if !has_forge_provider {
@@ -55,7 +56,9 @@ impl<F: EnvironmentInfra> ProviderRegistry for ForgeProviderRegistry<F> {
             if !new_provider_config.providers.is_empty() {
                 new_provider_config.provider_id = Some(new_provider_config.providers[0].id.clone());
             }
-            let provider = new_provider_config.get_provider().context("Failed to detect provider")?;
+            let provider = new_provider_config
+                .get_provider()
+                .context("Failed to detect provider")?;
             self.cache.write().await.replace(provider.clone());
             return Ok(provider);
         }

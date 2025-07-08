@@ -22,7 +22,6 @@ pub struct Anthropic {
 }
 
 impl Anthropic {
-
     pub fn update_provider(
         &mut self,
         api_key: String,

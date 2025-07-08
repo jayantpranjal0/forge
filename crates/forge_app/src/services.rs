@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use forge_domain::{
     Attachment, ChatCompletionMessage, CommandOutput, Context, Conversation, ConversationId,
-    Environment, File, McpConfig, Model, ModelId, PatchOperation, Provider, ResultStream, Scope,
-    ToolCallFull, ToolDefinition, ToolOutput, Workflow, ProviderDetails
+    Environment, File, McpConfig, Model, ModelId, PatchOperation, Provider, ProviderDetails,
+    ResultStream, Scope, ToolCallFull, ToolDefinition, ToolOutput, Workflow,
 };
 use merge::Merge;
 
@@ -590,7 +590,6 @@ impl<I: Services> ProviderRegistry for I {
         self.provider_registry().set_provider(provider).await
     }
 }
-
 
 #[async_trait::async_trait]
 impl<I: Services> AppConfigService for I {

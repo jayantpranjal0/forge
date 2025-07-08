@@ -28,10 +28,7 @@ impl ForgeProvider {
         ForgeProviderBuilder::default()
     }
 
-    pub fn update_provider(
-        &mut self,
-        provider: &Provider,
-    ) -> &mut Self {
+    pub fn update_provider(&mut self, provider: &Provider) -> &mut Self {
         self.provider = provider.clone();
         self
     }
@@ -46,13 +43,9 @@ impl ForgeProvider {
         let path = path.trim_start_matches('/');
 
         let base_url = self.provider.to_base_url();
-        base_url.join(path).with_context(|| {
-            format!(
-                "Failed to append {} to base URL: {}",
-                path,
-                base_url
-            )
-        })
+        base_url
+            .join(path)
+            .with_context(|| format!("Failed to append {path} to base URL: {base_url}"))
     }
 
     // OpenRouter optional headers ref: https://openrouter.ai/docs/api-reference/overview#headers
@@ -274,8 +267,8 @@ impl From<Model> for forge_domain::Model {
 #[cfg(test)]
 mod tests {
     use anyhow::Context;
-    use reqwest::Client;
     use forge_domain::ProviderDetails;
+    use reqwest::Client;
 
     use super::*;
     use crate::mock_server::{normalize_ports, MockServer};
@@ -289,7 +282,7 @@ mod tests {
             "openai".to_string(),
             base_url.to_string(),
         );
-        
+
         let provider = Provider::OpenAI(provider_details);
 
         Ok(ForgeProvider::builder()

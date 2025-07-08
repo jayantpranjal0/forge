@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use forge_app::{
-    AppConfig, AppConfigService, ConversationService, EnvironmentService, FileDiscoveryService, ForgeApp,
-    InitAuth, McpConfigManager, ProviderRegistry, ProviderService, Services,
-    Walker, WorkflowService,
+    AppConfig, AppConfigService, ConversationService, EnvironmentService, FileDiscoveryService,
+    ForgeApp, InitAuth, McpConfigManager, ProviderRegistry, ProviderService, Services, Walker,
+    WorkflowService,
 };
 use forge_domain::*;
 use forge_infra::ForgeInfra;
@@ -53,16 +53,12 @@ impl<A: Services, F: CommandInfra> API for ForgeAPI<A, F> {
             .await?)
     }
 
-    async fn models_for_provider(
-        &self,
-        provider: &Provider,
-    ) -> Result<Vec<Model>> {
-        Ok(
-            self.
-                services.
-                models(provider.clone()).await
-                .context("Failed to fetch models for provider")?
-        )
+    async fn models_for_provider(&self, provider: &Provider) -> Result<Vec<Model>> {
+        Ok(self
+            .services
+            .models(provider.clone())
+            .await
+            .context("Failed to fetch models for provider")?)
     }
 
     async fn chat(
@@ -182,9 +178,19 @@ impl<A: Services, F: CommandInfra> API for ForgeAPI<A, F> {
 
     async fn update_provider(&self, provider: Provider) {
         // Update the provider service
-        if let Ok(_) = self.services.provider_service().set_provider(provider.clone()).await {
+        if let Ok(_) = self
+            .services
+            .provider_service()
+            .set_provider(provider.clone())
+            .await
+        {
             // Also update the provider registry cache
-            if let Ok(_) = self.services.provider_registry().set_provider(provider).await {
+            if let Ok(_) = self
+                .services
+                .provider_registry()
+                .set_provider(provider)
+                .await
+            {
                 tracing::info!("Provider updated successfully in both service and registry");
             } else {
                 tracing::warn!("Failed to update provider registry cache");

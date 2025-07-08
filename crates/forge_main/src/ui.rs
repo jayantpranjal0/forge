@@ -87,10 +87,7 @@ impl<A: API, F: Fn() -> A> UI<A, F> {
         providers
     }
 
-    async fn get_models_for_provider(
-        &mut self,
-        provider: &Provider,
-    ) -> Result<Vec<Model>> {
+    async fn get_models_for_provider(&mut self, provider: &Provider) -> Result<Vec<Model>> {
         self.spinner.start(Some("Loading models for provider"))?;
         let models = self.api.models_for_provider(provider).await?;
         self.spinner.stop(None)?;
@@ -571,7 +568,7 @@ impl<A: API, F: Fn() -> A> UI<A, F> {
             .state
             .provider
             .as_ref()
-            .and_then(|current| providers.iter().position(|p| &p.id == current.id() ))
+            .and_then(|current| providers.iter().position(|p| p.id == current.id()))
             .unwrap_or(0);
 
         // Use inquire to select a provider, with the current provider pre-selected
@@ -637,7 +634,7 @@ impl<A: API, F: Fn() -> A> UI<A, F> {
     async fn on_provider_selection(&mut self) -> Result<()> {
         // Select a provider
         let provider_option = self.select_provider().await?;
-        
+
         // If no provider was selected (user canceled), return early
         let provider = match provider_option {
             Some(provider) => provider,
@@ -649,14 +646,13 @@ impl<A: API, F: Fn() -> A> UI<A, F> {
             Some(model) => model,
             None => return Ok(()),
         };
-        
+
         self.api
             .update_workflow(self.cli.workflow.as_deref(), |workflow| {
                 workflow.model = Some(model.clone());
             })
             .await?;
         self.api.update_provider(provider.clone()).await;
-        
 
         // Get the conversation to update
         let conversation_id = self.init_conversation().await?;

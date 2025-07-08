@@ -1,9 +1,11 @@
-use std::{sync::Arc, vec};
+use std::sync::Arc;
+use std::vec;
 
 use anyhow::{Context, Result};
 use forge_app::{AppConfig, ProviderService};
 use forge_domain::{
-    ChatCompletionMessage, Context as ChatContext, HttpConfig, Model, ModelId, Provider, ProviderConfig, ProviderDetails, ResultStream, RetryConfig, Workflow
+    ChatCompletionMessage, Context as ChatContext, HttpConfig, Model, ModelId, Provider,
+    ProviderConfig, ProviderDetails, ResultStream, RetryConfig, Workflow,
 };
 use forge_provider::Client;
 use tokio::sync::RwLock;
@@ -24,14 +26,16 @@ impl ForgeProviderService {
         let env = infra.get_environment();
         let version = env.version();
         let retry_config = Arc::new(env.retry_config);
-        
+
         // Start with default providers
         let mut providers: Vec<ProviderDetails> = ProviderConfig::default();
         // Try to load and merge providers from forge.yaml
         if let Some(workflow) = Self::load_forge_workflow(&infra) {
             if !workflow.provider_config.is_empty() {
                 for forge_provider in workflow.provider_config {
-                    if let Some(existing_idx) = providers.iter().position(|p| p.id == forge_provider.id) {
+                    if let Some(existing_idx) =
+                        providers.iter().position(|p| p.id == forge_provider.id)
+                    {
                         providers[existing_idx] = forge_provider;
                     } else {
                         providers.push(forge_provider);
@@ -41,22 +45,23 @@ impl ForgeProviderService {
         }
         let mut resolved_providers = resolve_env_provider(&providers, infra.as_ref());
         // Check if a provider with forge is already there
-            let has_forge_provider = resolved_providers.iter()
-                .any(|p| p.id.to_lowercase().contains("forge"));
+        let has_forge_provider = resolved_providers
+            .iter()
+            .any(|p| p.id.to_lowercase().contains("forge"));
 
-            if !has_forge_provider {
-                if let Some(login) = app_config.key_info {
-                    let forge_provider = ProviderDetails::new(
-                        "forge".to_string(),
-                        "Forge".to_string(),
-                        "Forge AI Provider".to_string(),
-                        login.api_key,
-                        "openai".to_string(),
-                        " https://antinomy.ai/api/v1/".to_string(),
-                    );
-                    resolved_providers.push(forge_provider);
-                }
+        if !has_forge_provider {
+            if let Some(login) = app_config.key_info {
+                let forge_provider = ProviderDetails::new(
+                    "forge".to_string(),
+                    "Forge".to_string(),
+                    "Forge AI Provider".to_string(),
+                    login.api_key,
+                    "openai".to_string(),
+                    " https://antinomy.ai/api/v1/".to_string(),
+                );
+                resolved_providers.push(forge_provider);
             }
+        }
         Self {
             retry_config,
             cached_client: Arc::new(RwLock::new(None)),
@@ -69,7 +74,7 @@ impl ForgeProviderService {
     fn load_forge_workflow<I: EnvironmentInfra>(infra: &Arc<I>) -> Option<Workflow> {
         let env = infra.get_environment();
         let forge_path = env.cwd.join("forge.yaml");
-        
+
         if forge_path.exists() {
             match std::fs::read_to_string(&forge_path) {
                 Ok(content) => {
@@ -157,9 +162,7 @@ impl ProviderService for ForgeProviderService {
         // For now, let's block on the future
         let providers = self.providers.clone();
         tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(async {
-                providers.read().await.clone()
-            })
+            tokio::runtime::Handle::current().block_on(async { providers.read().await.clone() })
         })
     }
 
@@ -179,13 +182,13 @@ impl ProviderService for ForgeProviderService {
 
     async fn set_provider(&self, provider: Provider) -> Result<()> {
         println!("Updating provider: {}", provider.id());
-        
+
         // Check if we have a cached client
         let has_cached_client = {
             let client_guard = self.cached_client.read().await;
             client_guard.is_some()
         };
-        
+
         if has_cached_client {
             // Update the existing cached client
             let mut client_guard = self.cached_client.write().await;
@@ -204,7 +207,7 @@ impl ProviderService for ForgeProviderService {
 
 pub fn resolve_env_provider<F: EnvironmentInfra>(
     provider_config: &Vec<ProviderDetails>,
-    env: &F
+    env: &F,
 ) -> Vec<ProviderDetails> {
     let mut updated_config = vec![];
     for provider in provider_config {
