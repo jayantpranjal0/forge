@@ -163,9 +163,9 @@ pub trait WalkerInfra: Send + Sync {
 }
 
 // TODO: rename me, add Infra suffix
-#[async_trait::async_trait]
-pub trait HttpInfra: Send + Sync + 'static {
-    async fn get(&self, url: &str, headers: Option<HeaderMap>) -> anyhow::Result<Response>;
-    async fn post(&self, url: &str, body: Bytes) -> anyhow::Result<Response>;
-    async fn delete(&self, url: &str) -> anyhow::Result<Response>;
-}
+// #[async_trait::async_trait]
+// pub trait HttpInfra: Send + Sync + 'static {
+//     async fn get(&self, url: &str, headers: Option<HeaderMap>) -> anyhow::Result<Response>;
+//     async fn post(&self, url: &str, body: Bytes) -> anyhow::Result<Response>;
+//     async fn delete(&self, url: &str) -> anyhow::Result<Response>;
+// }
