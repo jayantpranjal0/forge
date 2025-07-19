@@ -16,12 +16,43 @@ pub async fn run(mut terminal: DefaultTerminal) -> anyhow::Result<()> {
     let (action_tx, mut action_rx) = tokio::sync::mpsc::channel::<anyhow::Result<Action>>(1024);
     let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel::<Command>(1024);
 
+    // Create a separate channel for UI streaming that converts ChatResponse to
+    // Action
+    let (ui_stream_tx, mut ui_stream_rx) =
+        tokio::sync::mpsc::channel::<anyhow::Result<forge_api::ChatResponse>>(1024);
+    let ui_stream_tx = Arc::new(ui_stream_tx);
+
     let mut state = State::default();
-    let api = ForgeAPI::init(false);
+
+    // Initialize API with UI streaming support
+    let api = ForgeAPI::init_with_ui_stream(false, ui_stream_tx);
 
     // Initialize forge_tracker using the API instance
     let env = api.environment();
     let _guard = forge_tracker::init_tracing(env.log_path(), TRACKER.clone())?;
+
+    // Spawn task to convert UI stream messages to actions
+    let action_tx_for_ui = action_tx.clone();
+    tokio::spawn(async move {
+        while let Some(response) = ui_stream_rx.recv().await {
+            match response {
+                Ok(chat_response) => {
+                    if (action_tx_for_ui
+                        .send(Ok(Action::ChatResponse(chat_response)))
+                        .await)
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                Err(err) => {
+                    if (action_tx_for_ui.send(Err(err)).await).is_err() {
+                        break;
+                    }
+                }
+            }
+        }
+    });
 
     // Initialize Executor
     let executor = Executor::new(Arc::new(api));

@@ -3,7 +3,7 @@ use std::process::ExitStatus;
 use std::sync::Arc;
 
 use bytes::Bytes;
-use forge_domain::{CommandOutput, Environment, McpServerConfig};
+use forge_domain::{ChatResponse, CommandOutput, Environment, McpServerConfig};
 use forge_fs::FileInfo as FileInfoData;
 use forge_services::{
     CommandInfra, EnvironmentInfra, FileDirectoryInfra, FileInfoInfra, FileReaderInfra,
@@ -12,6 +12,7 @@ use forge_services::{
 };
 use reqwest::Response;
 use reqwest::header::HeaderMap;
+use tokio::sync::mpsc::Sender;
 
 use crate::env::ForgeEnvironmentInfra;
 use crate::executor::ForgeCommandExecutorService;
@@ -25,6 +26,7 @@ use crate::http::ForgeHttpService;
 use crate::inquire::ForgeInquire;
 use crate::mcp_client::ForgeMcpClient;
 use crate::mcp_server::ForgeMcpServer;
+use crate::stream_service::{StreamService, UiStreamService};
 use crate::walker::ForgeWalkerService;
 
 #[derive(Clone)]
@@ -62,6 +64,44 @@ impl ForgeInfra {
             command_executor_service: Arc::new(ForgeCommandExecutorService::new(
                 restricted,
                 env.clone(),
+            )),
+            inquire_service: Arc::new(ForgeInquire::new()),
+            mcp_server: ForgeMcpServer,
+            walker_service: Arc::new(ForgeWalkerService::new()),
+            http_service,
+        }
+    }
+
+    pub fn new_with_ui_stream(
+        restricted: bool,
+        ui_stream_sender: Arc<Sender<anyhow::Result<ChatResponse>>>,
+    ) -> Self {
+        let environment_service = Arc::new(ForgeEnvironmentInfra::new(restricted));
+        let env = environment_service.get_environment();
+        let file_snapshot_service = Arc::new(ForgeFileSnapshotService::new(env.clone()));
+        let http_service = Arc::new(ForgeHttpService::new());
+
+        // Create UI stream services for stdout and stderr
+        let stdout_stream_service: Arc<dyn StreamService> =
+            Arc::new(UiStreamService::new(ui_stream_sender.clone()));
+        let stderr_stream_service: Arc<dyn StreamService> =
+            Arc::new(UiStreamService::new(ui_stream_sender));
+
+        Self {
+            file_read_service: Arc::new(ForgeFileReadService::new()),
+            file_write_service: Arc::new(ForgeFileWriteService::new(file_snapshot_service.clone())),
+            file_meta_service: Arc::new(ForgeFileMetaService),
+            file_remove_service: Arc::new(ForgeFileRemoveService::new(
+                file_snapshot_service.clone(),
+            )),
+            environment_service,
+            file_snapshot_service,
+            create_dirs_service: Arc::new(ForgeCreateDirsService),
+            command_executor_service: Arc::new(ForgeCommandExecutorService::with_stream_services(
+                restricted,
+                env.clone(),
+                Some(stdout_stream_service),
+                Some(stderr_stream_service),
             )),
             inquire_service: Arc::new(ForgeInquire::new()),
             mcp_server: ForgeMcpServer,

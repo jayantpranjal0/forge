@@ -73,6 +73,19 @@ fn messages_to_lines(messages: &[Message]) -> Vec<Line<'_>> {
                 ChatResponse::RetryAttempt { cause: _, duration: _ } => {
                     todo!()
                 }
+                ChatResponse::StreamedText { text, is_complete } => {
+                    if *is_complete {
+                        match text.clone().into_text() {
+                            Ok(text) => text.lines.into_iter(),
+                            Err(_) => vec![Line::raw(text.clone())].into_iter(),
+                        }
+                    } else {
+                        match text.clone().into_text() {
+                            Ok(text) => text.lines.into_iter(),
+                            Err(_) => vec![Line::raw(text.clone())].into_iter(),
+                        }
+                    }
+                }
             },
         })
         .collect()

@@ -1,18 +1,21 @@
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use forge_domain::{CommandOutput, Environment};
 use forge_services::CommandInfra;
-use tokio::io::AsyncReadExt;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 
+use crate::stream_service::{StreamService, stream_to_writer};
+
 /// Service for executing shell commands
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ForgeCommandExecutorService {
     restricted: bool,
     env: Environment,
+    stdout_stream_service: Option<Arc<dyn StreamService>>,
+    stderr_stream_service: Option<Arc<dyn StreamService>>,
 
     // Mutex to ensure that only one command is executed at a time
     ready: Arc<Mutex<()>>,
@@ -20,7 +23,28 @@ pub struct ForgeCommandExecutorService {
 
 impl ForgeCommandExecutorService {
     pub fn new(restricted: bool, env: Environment) -> Self {
-        Self { restricted, env, ready: Arc::new(Mutex::new(())) }
+        Self {
+            restricted,
+            env,
+            stdout_stream_service: None,
+            stderr_stream_service: None,
+            ready: Arc::new(Mutex::new(())),
+        }
+    }
+
+    pub fn with_stream_services(
+        restricted: bool,
+        env: Environment,
+        stdout_stream_service: Option<Arc<dyn StreamService>>,
+        stderr_stream_service: Option<Arc<dyn StreamService>>,
+    ) -> Self {
+        Self {
+            restricted,
+            env,
+            stdout_stream_service,
+            stderr_stream_service,
+            ready: Arc::new(Mutex::new(())),
+        }
     }
 
     fn prepare_command(&self, command_str: &str, working_dir: Option<&Path>) -> Command {
@@ -92,11 +116,11 @@ impl ForgeCommandExecutorService {
         let mut stdout_pipe = child.stdout.take();
         let mut stderr_pipe = child.stderr.take();
 
-        // Stream the output of the command to stdout and stderr concurrently
+        // Stream the output of the command using stream services or default behavior
         let (status, stdout_buffer, stderr_buffer) = tokio::try_join!(
             child.wait(),
-            stream(&mut stdout_pipe, io::stdout()),
-            stream(&mut stderr_pipe, io::stderr())
+            self.handle_stdout_stream(&mut stdout_pipe),
+            self.handle_stderr_stream(&mut stderr_pipe)
         )?;
 
         // Drop happens after `try_join` due to <https://github.com/tokio-rs/tokio/issues/4309>
@@ -111,28 +135,28 @@ impl ForgeCommandExecutorService {
             command,
         })
     }
-}
 
-/// reads the output from A and writes it to W
-async fn stream<A: AsyncReadExt + Unpin, W: Write>(
-    io: &mut Option<A>,
-    mut writer: W,
-) -> io::Result<Vec<u8>> {
-    let mut output = Vec::new();
-    if let Some(io) = io.as_mut() {
-        let mut buff = [0; 1024];
-        loop {
-            let n = io.read(&mut buff).await?;
-            if n == 0 {
-                break;
-            }
-            writer.write_all(&buff[..n])?;
-            // note: flush is necessary else we get the cursor could not be found error.
-            writer.flush()?;
-            output.extend_from_slice(&buff[..n]);
+    async fn handle_stdout_stream(
+        &self,
+        io: &mut Option<tokio::process::ChildStdout>,
+    ) -> io::Result<Vec<u8>> {
+        if let Some(ref stream_service) = self.stdout_stream_service {
+            stream_service.stream_stdout(io).await
+        } else {
+            stream_to_writer(io, io::stdout()).await
         }
     }
-    Ok(output)
+
+    async fn handle_stderr_stream(
+        &self,
+        io: &mut Option<tokio::process::ChildStderr>,
+    ) -> io::Result<Vec<u8>> {
+        if let Some(ref stream_service) = self.stderr_stream_service {
+            stream_service.stream_stderr(io).await
+        } else {
+            stream_to_writer(io, io::stderr()).await
+        }
+    }
 }
 
 /// The implementation for CommandExecutorService

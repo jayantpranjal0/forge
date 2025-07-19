@@ -31,6 +31,15 @@ impl ForgeAPI<ForgeServices<ForgeInfra>, ForgeInfra> {
         let app = Arc::new(ForgeServices::new(infra.clone()));
         ForgeAPI::new(app, infra)
     }
+
+    pub fn init_with_ui_stream(
+        restricted: bool,
+        ui_stream_sender: Arc<tokio::sync::mpsc::Sender<anyhow::Result<ChatResponse>>>,
+    ) -> Self {
+        let infra = Arc::new(ForgeInfra::new_with_ui_stream(restricted, ui_stream_sender));
+        let app = Arc::new(ForgeServices::new(infra.clone()));
+        ForgeAPI::new(app, infra)
+    }
 }
 
 #[async_trait::async_trait]

@@ -1,4 +1,5 @@
 pub mod executor;
+pub mod stream_service;
 
 mod env;
 mod error;
@@ -17,3 +18,4 @@ mod walker;
 
 pub use executor::ForgeCommandExecutorService;
 pub use forge_infra::*;
+pub use stream_service::{DefaultStreamService, StreamService, UiStreamService};
