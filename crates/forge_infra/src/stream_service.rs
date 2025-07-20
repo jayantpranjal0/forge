@@ -122,7 +122,7 @@ impl UiStreamService {
                 let text = String::from_utf8_lossy(&buff[..n]).into_owned();
 
                 // Send as streamed text to UI
-                let chat_response = ChatResponse::StreamedText { text, is_complete: false };
+                let chat_response = ChatResponse::Text { text, is_complete: true, is_md: false };
 
                 if let Err(e) = self.sender.send(Ok(chat_response)).await {
                     tracing::warn!("Failed to send streamed text to UI: {}", e);
@@ -133,7 +133,7 @@ impl UiStreamService {
 
             // Send completion marker
             let completion_response =
-                ChatResponse::StreamedText { text: String::new(), is_complete: true };
+                ChatResponse::Text { text: String::new(), is_complete: true, is_md: false };
 
             if let Err(e) = self.sender.send(Ok(completion_response)).await {
                 tracing::warn!("Failed to send stream completion to UI: {}", e);
@@ -181,7 +181,7 @@ mod tests {
         // Check that we received the streamed text
         let response = rx.recv().await.unwrap().unwrap();
         match response {
-            ChatResponse::StreamedText { text, is_complete } => {
+            ChatResponse::Text { text, is_complete, is_md } => {
                 assert_eq!(text, "hello world");
                 assert_eq!(is_complete, false);
             }
@@ -191,9 +191,9 @@ mod tests {
         // Check completion marker
         let completion = rx.recv().await.unwrap().unwrap();
         match completion {
-            ChatResponse::StreamedText { text, is_complete } => {
+            ChatResponse::Text { text, is_complete, _ } => {
                 assert_eq!(text, "");
-                assert_eq!(is_complete, true);
+                assert_eq!(is_complete, false);
             }
             _ => panic!("Expected StreamedText completion"),
         }

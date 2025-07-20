@@ -783,9 +783,6 @@ impl<A: API + 'static, F: Fn() -> A> UI<A, F> {
                     self.writeln(content.dimmed())?;
                 }
             }
-            ChatResponse::StreamedText { text: _, is_complete: _ } => {
-                // StreamedText is handled by neo UI, ignore in main UI
-            }
         }
         Ok(())
     }

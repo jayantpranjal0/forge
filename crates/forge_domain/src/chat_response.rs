@@ -27,10 +27,6 @@ pub enum ChatResponse {
     Reasoning {
         content: String,
     },
-    StreamedText {
-        text: String,
-        is_complete: bool,
-    },
 }
 
 #[derive(Debug, Clone)]
