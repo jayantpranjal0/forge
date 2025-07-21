@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
 use derive_setters::Setters;
+use forge_domain::{ChatResponse, TaskList};
 use tokio::sync::mpsc::Sender;
-
-use crate::{ChatResponse, TaskList};
 
 /// Type alias for Arc<Sender<Result<ChatResponse>>>
 type ArcSender = Arc<Sender<anyhow::Result<ChatResponse>>>;

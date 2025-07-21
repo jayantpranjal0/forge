@@ -3,12 +3,13 @@ use std::path::{Path, PathBuf};
 use forge_domain::{
     Attachment, ChatCompletionMessage, CommandOutput, Context, Conversation, ConversationId,
     Environment, File, McpConfig, Model, ModelId, PatchOperation, Provider, ResultStream, Scope,
-    ToolCallContext, ToolCallFull, ToolDefinition, ToolOutput, Workflow,
+    ToolCallFull, ToolDefinition, ToolOutput, Workflow,
 };
 use merge::Merge;
 
 use crate::user::User;
 use crate::{AppConfig, InitAuth, LoginInfo, Walker};
+use crate::ToolCallContext;
 
 #[derive(Debug)]
 pub struct ShellOutput {

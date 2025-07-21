@@ -17,6 +17,7 @@ mod truncation;
 mod user;
 mod utils;
 mod walker;
+mod tool_call_context;
 
 pub use app::*;
 pub use app_config::*;
@@ -24,6 +25,7 @@ pub use error::*;
 pub use services::*;
 pub use user::*;
 pub use walker::*;
+pub use tool_call_context::*;
 pub mod domain {
     pub use forge_domain::*;
 }

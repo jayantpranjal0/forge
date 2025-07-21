@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use forge_domain::{
-    Agent, AgentInput, ToolCallContext, ToolCallFull, ToolDefinition, ToolName, ToolOutput,
+    Agent, AgentInput, ToolCallFull, ToolDefinition, ToolName, ToolOutput,
     ToolResult, Tools, ToolsDiscriminants,
 };
 use strum::IntoEnumIterator;
@@ -14,6 +14,7 @@ use crate::error::Error;
 use crate::mcp_executor::McpExecutor;
 use crate::tool_executor::ToolExecutor;
 use crate::{McpService, Services};
+use crate::tool_call_context::ToolCallContext;
 
 const TOOL_CALL_TIMEOUT: Duration = Duration::from_secs(300);
 
