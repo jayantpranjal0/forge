@@ -52,9 +52,10 @@ proc-macro2 = "1.0"
 quote = "1.0"
 reedline = "0.40.0"
 regex = "1.11.1"
-reqwest = { version = "0.12.12", features = [
+reqwest = { version = "0.12.22", features = [
     "json",
     "rustls-tls",
+    "hickory-dns",
 ], default-features = false }
 reqwest-eventsource = "0.6.0"
 rust-embed = "8.5.0"
@@ -73,6 +74,7 @@ termimad = "0.31.2"
 thiserror = "2.0.11"
 tokio = { version = "1.44.2", features = ["full", "test-util"] }
 tokio-stream = "0.1.17"
+tokio-util = "0.7"
 tracing = "0.1.41"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
