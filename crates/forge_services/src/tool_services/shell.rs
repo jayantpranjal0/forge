@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::bail;
-use forge_app::domain::Environment;
+use forge_app::domain::{Environment, ToolCallContext};
 use forge_app::{ShellOutput, ShellService};
 use strip_ansi_escapes::strip;
 
@@ -47,10 +47,14 @@ impl<I: CommandInfra + EnvironmentInfra> ShellService for ForgeShell<I> {
         command: String,
         cwd: PathBuf,
         keep_ansi: bool,
+        context: &mut ToolCallContext,
     ) -> anyhow::Result<ShellOutput> {
         Self::validate_command(&command)?;
 
-        let mut output = self.infra.execute_command(command, cwd).await?;
+        let mut output = self
+            .infra
+            .execute_command_streaming(command, cwd, context)
+            .await?;
 
         if !keep_ansi {
             output.stdout = strip_ansi(output.stdout);

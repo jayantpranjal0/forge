@@ -3,7 +3,7 @@ use std::process::ExitStatus;
 use std::sync::Arc;
 
 use bytes::Bytes;
-use forge_domain::{CommandOutput, Environment, McpServerConfig};
+use forge_domain::{CommandOutput, Environment, McpServerConfig, ToolCallContext};
 use forge_fs::FileInfo as FileInfoData;
 use forge_services::{
     CommandInfra, EnvironmentInfra, FileDirectoryInfra, FileInfoInfra, FileReaderInfra,
@@ -178,6 +178,17 @@ impl CommandInfra for ForgeInfra {
     async fn execute_command_raw(&self, command: &str) -> anyhow::Result<ExitStatus> {
         self.command_executor_service
             .execute_command_raw(command)
+            .await
+    }
+
+    async fn execute_command_streaming(
+        &self,
+        command: String,
+        working_dir: PathBuf,
+        context: &mut ToolCallContext,
+    ) -> anyhow::Result<CommandOutput> {
+        self.command_executor_service
+            .execute_command_streaming(command, working_dir, context)
             .await
     }
 }

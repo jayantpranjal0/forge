@@ -1,8 +1,8 @@
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_domain::{CommandOutput, Environment};
+use forge_domain::{CommandOutput, Environment, ToolCallContext};
 use forge_services::CommandInfra;
 use tokio::io::AsyncReadExt;
 use tokio::process::Command;
@@ -111,10 +111,77 @@ impl ForgeCommandExecutorService {
             command,
         })
     }
+
+    /// Internal method to execute commands with streaming to console and
+    /// context
+    async fn execute_streaming_command_internal(
+        &self,
+        command: String,
+        working_dir: &Path,
+        context: &mut ToolCallContext,
+    ) -> anyhow::Result<CommandOutput> {
+        let ready = self.ready.lock().await;
+
+        let mut prepared_command = self.prepare_command(&command, Some(working_dir));
+
+        // Spawn the command
+        let mut child = prepared_command.spawn()?;
+
+        let mut stdout_pipe = child.stdout.take();
+        let mut stderr_pipe = child.stderr.take();
+
+        // Stream the output of the command to context only (not console)
+        let (status, stdout_buffer, stderr_buffer) = tokio::try_join!(
+            child.wait(),
+            stream_with_context(&mut stdout_pipe, context),
+            stream_with_context(&mut stderr_pipe, context)
+        )?;
+
+        // Drop happens after `try_join` due to <https://github.com/tokio-rs/tokio/issues/4309>
+        drop(stdout_pipe);
+        drop(stderr_pipe);
+        drop(ready);
+
+        Ok(CommandOutput {
+            stdout: String::from_utf8_lossy(&stdout_buffer).into_owned(),
+            stderr: String::from_utf8_lossy(&stderr_buffer).into_owned(),
+            exit_code: status.code(),
+            command,
+        })
+    }
+}
+
+/// reads the output from A and streams to context only
+async fn stream_with_context<A: AsyncReadExt + Unpin>(
+    io: &mut Option<A>,
+    context: &ToolCallContext,
+) -> io::Result<Vec<u8>> {
+    let mut output = Vec::new();
+    if let Some(io) = io.as_mut() {
+        let mut buff = [0; 1024];
+        loop {
+            let n = io.read(&mut buff).await?;
+            if n == 0 {
+                break;
+            }
+
+            // Send to context for UI streaming
+            let text_chunk = String::from_utf8_lossy(&buff[..n]);
+            if !text_chunk.trim().is_empty() {
+                // Send the text chunk to the UI via context
+                if let Err(e) = context.send_text(&text_chunk).await {
+                    tracing::warn!("Failed to send streaming output to context: {}", e);
+                }
+            }
+
+            output.extend_from_slice(&buff[..n]);
+        }
+    }
+    Ok(output)
 }
 
 /// reads the output from A and writes it to W
-async fn stream<A: AsyncReadExt + Unpin, W: Write>(
+async fn stream<A: AsyncReadExt + Unpin, W: std::io::Write>(
     io: &mut Option<A>,
     mut writer: W,
 ) -> io::Result<Vec<u8>> {
@@ -156,6 +223,19 @@ impl CommandInfra for ForgeCommandExecutorService {
             .stderr(std::process::Stdio::inherit());
 
         Ok(prepared_command.spawn()?.wait().await?)
+    }
+
+    async fn execute_command_streaming(
+        &self,
+        command: String,
+        working_dir: PathBuf,
+        context: &mut ToolCallContext,
+    ) -> anyhow::Result<CommandOutput> {
+        // For now, just execute the command without streaming to context
+        let _output = self
+            .execute_streaming_command_internal(command, &working_dir, context)
+            .await?;
+        Ok(_output)
     }
 }
 
@@ -207,6 +287,40 @@ mod tests {
             stdout: "hello world\n".to_string(),
             stderr: "".to_string(),
             command: "echo \"hello world\"".into(),
+            exit_code: Some(0),
+        };
+
+        if cfg!(target_os = "windows") {
+            expected.stdout = format!("'{}'", expected.stdout);
+        }
+
+        assert_eq!(actual.stdout.trim(), expected.stdout.trim());
+        assert_eq!(actual.stderr, expected.stderr);
+        assert_eq!(actual.success(), expected.success());
+    }
+
+    #[tokio::test]
+    async fn test_streaming_command_executor() {
+        use forge_domain::TaskList;
+
+        let fixture = ForgeCommandExecutorService::new(false, test_env());
+        let cmd = "echo 'hello streaming world'";
+        let dir = ".";
+        let mut context = ToolCallContext::new(TaskList::new());
+
+        let actual = fixture
+            .execute_streaming_command_internal(
+                cmd.to_string(),
+                &PathBuf::new().join(dir),
+                &mut context,
+            )
+            .await
+            .unwrap();
+
+        let mut expected = CommandOutput {
+            stdout: "hello streaming world\n".to_string(),
+            stderr: "".to_string(),
+            command: "echo 'hello streaming world'".into(),
             exit_code: Some(0),
         };
 

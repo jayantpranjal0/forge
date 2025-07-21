@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use forge_domain::{
     Attachment, ChatCompletionMessage, CommandOutput, Context, Conversation, ConversationId,
     Environment, File, McpConfig, Model, ModelId, PatchOperation, Provider, ResultStream, Scope,
-    ToolCallFull, ToolDefinition, ToolOutput, Workflow,
+    ToolCallContext, ToolCallFull, ToolDefinition, ToolOutput, Workflow,
 };
 use merge::Merge;
 
@@ -273,6 +273,7 @@ pub trait ShellService: Send + Sync {
         command: String,
         cwd: PathBuf,
         keep_ansi: bool,
+        context: &mut ToolCallContext,
     ) -> anyhow::Result<ShellOutput>;
 }
 
@@ -558,8 +559,11 @@ impl<I: Services> ShellService for I {
         command: String,
         cwd: PathBuf,
         keep_ansi: bool,
+        context: &mut ToolCallContext,
     ) -> anyhow::Result<ShellOutput> {
-        self.shell_service().execute(command, cwd, keep_ansi).await
+        self.shell_service()
+            .execute(command, cwd, keep_ansi, context)
+            .await
     }
 }
 

@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use bytes::Bytes;
 use forge_app::domain::{
-    CommandOutput, Environment, McpServerConfig, ToolDefinition, ToolName, ToolOutput,
+    CommandOutput, Environment, McpServerConfig, ToolCallContext, ToolDefinition, ToolName,
+    ToolOutput,
 };
 use forge_app::{WalkedFile, Walker};
 use forge_snaps::Snapshot;
@@ -114,6 +115,13 @@ pub trait CommandInfra: Send + Sync {
 
     /// execute the shell command on present stdio.
     async fn execute_command_raw(&self, command: &str) -> anyhow::Result<std::process::ExitStatus>;
+
+    async fn execute_command_streaming(
+        &self,
+        command: String,
+        working_dir: PathBuf,
+        context: &mut ToolCallContext,
+    ) -> anyhow::Result<CommandOutput>;
 }
 
 #[async_trait::async_trait]

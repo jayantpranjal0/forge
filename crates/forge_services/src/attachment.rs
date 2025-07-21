@@ -76,7 +76,8 @@ pub mod tests {
     use bytes::Bytes;
     use forge_app::AttachmentService;
     use forge_app::domain::{
-        AttachmentContent, CommandOutput, Environment, ToolDefinition, ToolName, ToolOutput,
+        AttachmentContent, CommandOutput, Environment, ToolCallContext, ToolDefinition, ToolName,
+        ToolOutput,
     };
     use forge_snaps::Snapshot;
     use serde_json::Value;
@@ -433,6 +434,15 @@ pub mod tests {
         }
 
         async fn execute_command_raw(&self, _: &str) -> anyhow::Result<std::process::ExitStatus> {
+            unimplemented!()
+        }
+
+        async fn execute_command_streaming(
+            &self,
+            _: String,
+            _: PathBuf,
+            _: &mut ToolCallContext,
+        ) -> anyhow::Result<CommandOutput> {
             unimplemented!()
         }
     }
