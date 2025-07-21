@@ -7,7 +7,7 @@ use crate::error::Error;
 use crate::fmt::content::FormatContent;
 use crate::operation::Operation;
 use crate::services::ShellService;
-use crate::tool_call_context::ToolCallContext;
+use crate::tool_call_context::{ToolCallContext, WriteChannel};
 use crate::{
     ConversationService, EnvironmentService, FollowUpService, FsCreateService, FsPatchService,
     FsReadService, FsRemoveService, FsSearchService, FsUndoService, NetFetchService,

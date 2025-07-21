@@ -74,11 +74,10 @@ pub mod tests {
 
     use base64::Engine;
     use bytes::Bytes;
-    use forge_app::AttachmentService;
     use forge_app::domain::{
-        AttachmentContent, CommandOutput, Environment, ToolCallContext, ToolDefinition, ToolName,
-        ToolOutput,
+        AttachmentContent, CommandOutput, Environment, ToolDefinition, ToolName, ToolOutput,
     };
+    use forge_app::{AttachmentService, WriteChannel};
     use forge_snaps::Snapshot;
     use serde_json::Value;
     use url::Url;
@@ -441,7 +440,7 @@ pub mod tests {
             &self,
             _: String,
             _: PathBuf,
-            _: &mut ToolCallContext,
+            _: &mut (impl WriteChannel + Send + Sync),
         ) -> anyhow::Result<CommandOutput> {
             unimplemented!()
         }

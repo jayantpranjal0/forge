@@ -8,7 +8,7 @@ use forge_domain::{
 use merge::Merge;
 
 use crate::user::User;
-use crate::{AppConfig, InitAuth, LoginInfo, ToolCallContext, Walker};
+use crate::{AppConfig, InitAuth, LoginInfo, Walker, WriteChannel};
 
 #[derive(Debug)]
 pub struct ShellOutput {
@@ -273,7 +273,7 @@ pub trait ShellService: Send + Sync {
         command: String,
         cwd: PathBuf,
         keep_ansi: bool,
-        context: &mut ToolCallContext,
+        channel: &mut (impl WriteChannel + Send + Sync),
     ) -> anyhow::Result<ShellOutput>;
 }
 
@@ -559,10 +559,10 @@ impl<I: Services> ShellService for I {
         command: String,
         cwd: PathBuf,
         keep_ansi: bool,
-        context: &mut ToolCallContext,
+        channel: &mut (impl WriteChannel + Send + Sync),
     ) -> anyhow::Result<ShellOutput> {
         self.shell_service()
-            .execute(command, cwd, keep_ansi, context)
+            .execute(command, cwd, keep_ansi, channel)
             .await
     }
 }

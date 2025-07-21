@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use anyhow::bail;
 use forge_app::domain::Environment;
-use forge_app::{ShellOutput, ShellService, ToolCallContext};
+use forge_app::{ShellOutput, ShellService, WriteChannel};
 use strip_ansi_escapes::strip;
 
 use crate::{CommandInfra, EnvironmentInfra};
@@ -47,13 +47,13 @@ impl<I: CommandInfra + EnvironmentInfra> ShellService for ForgeShell<I> {
         command: String,
         cwd: PathBuf,
         keep_ansi: bool,
-        context: &mut ToolCallContext,
+        channel: &mut (impl WriteChannel + Send + Sync),
     ) -> anyhow::Result<ShellOutput> {
         Self::validate_command(&command)?;
 
         let mut output = self
             .infra
-            .execute_command_streaming(command, cwd, context)
+            .execute_command_streaming(command, cwd, channel)
             .await?;
 
         if !keep_ansi {

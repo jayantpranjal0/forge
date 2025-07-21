@@ -5,7 +5,7 @@ use bytes::Bytes;
 use forge_app::domain::{
     CommandOutput, Environment, McpServerConfig, ToolDefinition, ToolName, ToolOutput,
 };
-use forge_app::{ToolCallContext, WalkedFile, Walker};
+use forge_app::{WalkedFile, Walker, WriteChannel};
 use forge_snaps::Snapshot;
 use reqwest::Response;
 use reqwest::header::HeaderMap;
@@ -119,7 +119,7 @@ pub trait CommandInfra: Send + Sync {
         &self,
         command: String,
         working_dir: PathBuf,
-        context: &mut ToolCallContext,
+        channel: &mut (impl WriteChannel + Send + Sync),
     ) -> anyhow::Result<CommandOutput>;
 }
 

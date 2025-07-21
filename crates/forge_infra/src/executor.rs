@@ -2,7 +2,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_app::ToolCallContext;
+use forge_app::WriteChannel;
 use forge_domain::{CommandOutput, Environment};
 use forge_services::CommandInfra;
 use tokio::io::AsyncReadExt;
@@ -115,11 +115,11 @@ impl ForgeCommandExecutorService {
 
     /// Internal method to execute commands with streaming to console and
     /// context
-    async fn execute_streaming_command_internal(
+    async fn execute_streaming_command_internal<W: WriteChannel + Send + Sync>(
         &self,
         command: String,
         working_dir: &Path,
-        context: &mut ToolCallContext,
+        channel: &mut W,
     ) -> anyhow::Result<CommandOutput> {
         let ready = self.ready.lock().await;
 
@@ -134,8 +134,8 @@ impl ForgeCommandExecutorService {
         // Stream the output of the command to context only (not console)
         let (status, stdout_buffer, stderr_buffer) = tokio::try_join!(
             child.wait(),
-            stream_with_context(&mut stdout_pipe, context),
-            stream_with_context(&mut stderr_pipe, context)
+            stream_with_channel(&mut stdout_pipe, channel),
+            stream_with_channel(&mut stderr_pipe, channel)
         )?;
 
         // Drop happens after `try_join` due to <https://github.com/tokio-rs/tokio/issues/4309>
@@ -153,9 +153,9 @@ impl ForgeCommandExecutorService {
 }
 
 /// reads the output from A and streams to context only
-async fn stream_with_context<A: AsyncReadExt + Unpin>(
+async fn stream_with_channel<A: AsyncReadExt + Unpin, W: WriteChannel + Send + Sync>(
     io: &mut Option<A>,
-    context: &ToolCallContext,
+    channel: &W,
 ) -> io::Result<Vec<u8>> {
     let mut output = Vec::new();
     if let Some(io) = io.as_mut() {
@@ -170,7 +170,7 @@ async fn stream_with_context<A: AsyncReadExt + Unpin>(
             let text_chunk = String::from_utf8_lossy(&buff[..n]);
             if !text_chunk.trim().is_empty() {
                 // Send the text chunk to the UI via context
-                if let Err(e) = context.send_text(&text_chunk).await {
+                if let Err(e) = channel.send_text(&text_chunk).await {
                     tracing::warn!("Failed to send streaming output to context: {}", e);
                 }
             }
@@ -230,11 +230,11 @@ impl CommandInfra for ForgeCommandExecutorService {
         &self,
         command: String,
         working_dir: PathBuf,
-        context: &mut ToolCallContext,
+        channel: &mut (impl WriteChannel + Send + Sync),
     ) -> anyhow::Result<CommandOutput> {
         // For now, just execute the command without streaming to context
         let _output = self
-            .execute_streaming_command_internal(command, &working_dir, context)
+            .execute_streaming_command_internal(command, &working_dir, channel)
             .await?;
         Ok(_output)
     }
@@ -245,6 +245,8 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use reqwest::Url;
+    
+    use forge_app::ToolCallContext;
 
     use super::*;
 

@@ -7,7 +7,7 @@ use futures::StreamExt;
 use tokio::sync::RwLock;
 
 use crate::error::Error;
-use crate::tool_call_context::ToolCallContext;
+use crate::tool_call_context::{ToolCallContext, WriteChannel};
 use crate::{ConversationService, Services, WorkflowService};
 
 pub struct AgentExecutor<S> {
