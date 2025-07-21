@@ -243,10 +243,9 @@ impl CommandInfra for ForgeCommandExecutorService {
 #[cfg(test)]
 mod tests {
 
+    use forge_app::ToolCallContext;
     use pretty_assertions::assert_eq;
     use reqwest::Url;
-    
-    use forge_app::ToolCallContext;
 
     use super::*;
 
