@@ -8,8 +8,7 @@ use forge_domain::{
 use merge::Merge;
 
 use crate::user::User;
-use crate::{AppConfig, InitAuth, LoginInfo, Walker};
-use crate::ToolCallContext;
+use crate::{AppConfig, InitAuth, LoginInfo, ToolCallContext, Walker};
 
 #[derive(Debug)]
 pub struct ShellOutput {

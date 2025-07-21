@@ -2,15 +2,13 @@ use std::sync::Arc;
 
 use convert_case::{Case, Casing};
 use forge_display::TitleFormat;
-use forge_domain::{
-    ChatRequest, ChatResponse, Event, ToolDefinition, ToolName, ToolOutput,
-};
+use forge_domain::{ChatRequest, ChatResponse, Event, ToolDefinition, ToolName, ToolOutput};
 use futures::StreamExt;
 use tokio::sync::RwLock;
 
 use crate::error::Error;
-use crate::{ConversationService, Services, WorkflowService};
 use crate::tool_call_context::ToolCallContext;
+use crate::{ConversationService, Services, WorkflowService};
 
 pub struct AgentExecutor<S> {
     services: Arc<S>,

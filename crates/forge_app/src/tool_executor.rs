@@ -6,8 +6,8 @@ use forge_domain::{ToolCallFull, ToolOutput, Tools};
 use crate::error::Error;
 use crate::fmt::content::FormatContent;
 use crate::operation::Operation;
-use crate::tool_call_context::ToolCallContext;
 use crate::services::ShellService;
+use crate::tool_call_context::ToolCallContext;
 use crate::{
     ConversationService, EnvironmentService, FollowUpService, FsCreateService, FsPatchService,
     FsReadService, FsRemoveService, FsSearchService, FsUndoService, NetFetchService,

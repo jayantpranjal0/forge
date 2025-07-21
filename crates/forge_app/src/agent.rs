@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use forge_domain::{
-    Agent, ChatCompletionMessage, Context, Conversation, ModelId, ResultStream,
-    ToolCallFull, ToolResult,
+    Agent, ChatCompletionMessage, Context, Conversation, ModelId, ResultStream, ToolCallFull,
+    ToolResult,
 };
 
-use crate::tool_registry::ToolRegistry;
 use crate::tool_call_context::ToolCallContext;
+use crate::tool_registry::ToolRegistry;
 use crate::{
     AppConfigService, ConversationService, ProviderRegistry, ProviderService, Services,
     TemplateService,
