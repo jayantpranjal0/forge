@@ -11,7 +11,10 @@ use crate::event_reader::EventReader;
 use crate::executor::Executor;
 use crate::widgets::App;
 
-pub async fn run(mut terminal: DefaultTerminal, experimental_no_stdout_tool: bool) -> anyhow::Result<()> {
+pub async fn run(
+    mut terminal: DefaultTerminal,
+    experimental_no_stdout_tool: bool,
+) -> anyhow::Result<()> {
     // Initialize channels
     let (action_tx, mut action_rx) = tokio::sync::mpsc::channel::<anyhow::Result<Action>>(1024);
     let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel::<Command>(1024);
