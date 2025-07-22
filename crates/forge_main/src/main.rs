@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
     let neo_ui = cli.neo_ui;
     let experimental_no_stdout_tool = cli.experimental_no_stdout_tool;
     if neo_ui {
-        return forge_main_neo::main_neo(experimental_no_stdout_tool,cwd).await;
+        return forge_main_neo::main_neo(experimental_no_stdout_tool, cwd).await;
     }
     let mut ui = UI::init(cli, move || {
         ForgeAPI::init(restricted, cwd.clone(), experimental_no_stdout_tool)

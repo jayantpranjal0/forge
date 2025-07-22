@@ -4,8 +4,8 @@ use std::time::Duration;
 use anyhow::Context;
 use console::style;
 use forge_domain::{
-    Agent, AgentInput, ChatResponse, ToolCallFull, ToolDefinition, ToolName, ToolOutput, ToolResult, Tools,
-    ToolsDiscriminants,
+    Agent, AgentInput, ChatResponse, ToolCallFull, ToolDefinition, ToolName, ToolOutput,
+    ToolResult, Tools, ToolsDiscriminants,
 };
 use strum::IntoEnumIterator;
 use tokio::time::timeout;
@@ -15,8 +15,7 @@ use crate::error::Error;
 use crate::mcp_executor::McpExecutor;
 use crate::tool_call_context::ToolCallContext;
 use crate::tool_executor::ToolExecutor;
-use crate::{McpService, Services};
-use crate::{WriteChannel};
+use crate::{McpService, Services, WriteChannel};
 
 const TOOL_CALL_TIMEOUT: Duration = Duration::from_secs(300);
 
