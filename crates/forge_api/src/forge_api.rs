@@ -26,8 +26,8 @@ impl<A, F> ForgeAPI<A, F> {
 }
 
 impl ForgeAPI<ForgeServices<ForgeInfra>, ForgeInfra> {
-    pub fn init(restricted: bool, experimental_no_stdout_tool: bool) -> Self {
-        let infra = Arc::new(ForgeInfra::new(restricted, experimental_no_stdout_tool));
+    pub fn init(restricted: bool, cwd: PathBuf, experimental_no_stdout_tool: bool) -> Self {
+        let infra = Arc::new(ForgeInfra::new(restricted, cwd, experimental_no_stdout_tool));
         let app = Arc::new(ForgeServices::new(infra.clone()));
         ForgeAPI::new(app, infra)
     }
@@ -138,7 +138,8 @@ impl<A: Services, F: CommandInfra> API for ForgeAPI<A, F> {
         &self,
         command: &str,
     ) -> anyhow::Result<std::process::ExitStatus> {
-        self.infra.execute_command_raw(command).await
+        let cwd = self.environment().cwd;
+        self.infra.execute_command_raw(command, cwd).await
     }
 
     async fn init_login(&self) -> Result<InitAuth> {

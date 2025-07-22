@@ -2,8 +2,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Context;
+use console::style;
 use forge_domain::{
-    Agent, AgentInput, ToolCallFull, ToolDefinition, ToolName, ToolOutput, ToolResult, Tools,
+    Agent, AgentInput, ChatResponse, ToolCallFull, ToolDefinition, ToolName, ToolOutput, ToolResult, Tools,
     ToolsDiscriminants,
 };
 use strum::IntoEnumIterator;
@@ -15,6 +16,7 @@ use crate::mcp_executor::McpExecutor;
 use crate::tool_call_context::ToolCallContext;
 use crate::tool_executor::ToolExecutor;
 use crate::{McpService, Services};
+use crate::{WriteChannel};
 
 const TOOL_CALL_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -73,8 +75,25 @@ impl<S: Services> ToolRegistry<S> {
                 .execute(input.name.to_string(), agent_input.task, context)
                 .await
         } else if self.mcp_executor.contains_tool(&input.name).await? {
-            self.call_with_timeout(&tool_name, || self.mcp_executor.execute(input, context))
-                .await
+            let output = self
+                .call_with_timeout(&tool_name, || self.mcp_executor.execute(input, context))
+                .await?;
+            let text = output
+                .values
+                .iter()
+                .filter_map(|output| output.as_str())
+                .fold(String::new(), |mut a, b| {
+                    a.push('\n');
+                    a.push_str(b);
+                    a
+                });
+            if !text.trim().is_empty() {
+                let text = style(text).cyan().dim().to_string();
+                context
+                    .send(ChatResponse::Text { text, is_complete: true, is_md: false })
+                    .await?;
+            }
+            Ok(output)
         } else {
             Err(Error::NotFound(input.name).into())
         }

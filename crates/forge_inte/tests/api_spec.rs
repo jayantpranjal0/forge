@@ -39,7 +39,11 @@ impl Fixture {
     /// Get the API service, panicking if not validated
     fn api(&self) -> impl API {
         // NOTE: In tests the CWD is not the project root
-        ForgeAPI::init(true, false)
+        ForgeAPI::init(
+            true,
+            std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            false
+        )
     }
 
     /// Get model response as text
