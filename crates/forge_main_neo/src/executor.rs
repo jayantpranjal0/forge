@@ -8,7 +8,7 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use tracing::error;
 
-use crate::domain::{Action, CancelId, Command, Timer};
+use crate::domain::{Action, CancelId, Command, State, Timer};
 
 // Event type constants
 pub const EVENT_USER_TASK_INIT: &str = "user_task_init";

@@ -90,7 +90,7 @@ impl StatefulWidget for MessageList {
     {
         let mut lines = messages_to_lines(&state.messages);
         let s = Spinner::default();
-        if state.show_spinner {
+        if state.show_spinner.load(std::sync::atomic::Ordering::Relaxed) > 0 {
             lines.push(s.to_line(state));
         }
 

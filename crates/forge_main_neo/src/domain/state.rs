@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicUsize;
+use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
@@ -16,7 +18,7 @@ pub struct State {
     pub messages: Vec<Message>,
     pub spinner: ThrobberState,
     pub timer: Option<Timer>,
-    pub show_spinner: bool,
+    pub show_spinner: Arc<AtomicUsize>, // Use Arc for shared state across threads
     pub spotlight: SpotlightState,
     pub conversation: ConversationState,
     pub chat_stream: Option<CancelId>,
@@ -33,7 +35,7 @@ impl Default for State {
             messages: Default::default(),
             spinner: Default::default(),
             timer: Default::default(),
-            show_spinner: Default::default(),
+            show_spinner: Arc::new(AtomicUsize::new(0)),
             spotlight: Default::default(),
             conversation: Default::default(),
             chat_stream: None,

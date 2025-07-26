@@ -1,3 +1,5 @@
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 
 use edtui::actions::{
@@ -145,7 +147,7 @@ fn handle_prompt_submit(
             Command::Empty
         } else {
             state.add_user_message(message.clone());
-            state.show_spinner = true;
+            state.show_spinner.fetch_add(1, Ordering::SeqCst);
             let chat_command = Command::ChatMessage {
                 message,
                 conversation_id: state.conversation.conversation_id,
