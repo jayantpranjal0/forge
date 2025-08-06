@@ -7,9 +7,9 @@ pub trait Eval {
     // fn from_call_dump(call_dump_path: &str) -> Self;
     fn eval(&self) -> Score;
 
-
     // fn from_context(context: &forge_domain::Context) -> Self;
-    // Implement functions like this to directly create from in between code in certain modes instead of first writing to a file
+    // Implement functions like this to directly create from in between code in
+    // certain modes instead of first writing to a file
 }
 
 impl Eval for Test1 {

@@ -1,5 +1,6 @@
 use forge_domain::Context;
-use crate::utils::{get_tool_call};
+
+use crate::utils::get_tool_call;
 
 pub struct Test1 {
     context: Context,
@@ -13,12 +14,10 @@ impl Test1 {
         // matches.iter().all(|value_str| is_tool_call_string(value_str))
         matches.iter().all(|value_str| {
             if let Ok(_) = get_tool_call(value_str) {
-                return true;
+                true
             } else {
                 false
             }
         })
     }
 }
-
-
