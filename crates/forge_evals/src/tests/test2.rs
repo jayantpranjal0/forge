@@ -11,9 +11,10 @@ impl Test2 {
         // Figure out which message will be the correct one to chekc out
         let message = self.context.messages.first();
         if let Some(_msg) = message
-            && let Ok(tool_call) = get_tool_call("") {
-                return is_tool_completion_call(&tool_call);
-            }
+            && let Ok(tool_call) = get_tool_call("")
+        {
+            return is_tool_completion_call(&tool_call);
+        }
         false
     }
 }
