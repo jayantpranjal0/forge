@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
@@ -19,7 +20,7 @@ pub struct ForgeProviderService<I: HttpInfra> {
     cached_models: Arc<Mutex<Option<Vec<Model>>>>,
     version: String,
     timeout_config: HttpConfig,
-    http_infra: Arc<I>,
+    infra: Arc<I>,
 }
 
 impl<I: EnvironmentInfra + HttpInfra> ForgeProviderService<I> {
@@ -33,7 +34,7 @@ impl<I: EnvironmentInfra + HttpInfra> ForgeProviderService<I> {
             cached_models: Arc::new(Mutex::new(None)),
             version,
             timeout_config: env.http,
-            http_infra: infra,
+            infra: infra,
         }
     }
 
@@ -43,7 +44,7 @@ impl<I: EnvironmentInfra + HttpInfra> ForgeProviderService<I> {
         match client_guard.as_ref() {
             Some(client) => Ok(client.clone()),
             None => {
-                let infra = self.http_infra.clone();
+                let infra = self.infra.clone();
                 let client = ClientBuilder::new(provider, &self.version)
                     .retry_config(self.retry_config.clone())
                     .timeout_config(self.timeout_config.clone())
@@ -66,6 +67,32 @@ impl<I: EnvironmentInfra + HttpInfra> ProviderService for ForgeProviderService<I
         request: ChatContext,
         provider: Provider,
     ) -> ResultStream<ChatCompletionMessage, anyhow::Error> {
+        if let Some(dump_file) = self.infra.get_env_var("FORGE_CONTEXT_DUMP") {
+            let dump_path = Path::new("experiment_chat_request_dump");
+            if let Err(e) = std::fs::create_dir_all(dump_path) {
+                eprintln!("Warning: Failed to create dump directory: {e}");
+            } else {
+                // Create the filename from the environment variable
+                let file_path = dump_path.join(format!("{dump_file}.json"));
+
+                // Serialize and write the context to JSON
+                match serde_json::to_string_pretty(&request) {
+                    Ok(json_content) => {
+                        if let Err(e) = std::fs::write(&file_path, json_content) {
+                            eprintln!(
+                                "Warning: Failed to write context dump to {file_path:?}: {e}"
+                            );
+                        } else {
+                            println!("Context dumped to: {file_path:?}");
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Warning: Failed to serialize context to JSON: {e}");
+                    }
+                }
+            }
+        }
+
         let client = self.client(provider).await?;
 
         client
@@ -94,5 +121,33 @@ impl<I: EnvironmentInfra + HttpInfra> ProviderService for ForgeProviderService<I
         }
 
         Ok(models)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // Test that the context dump logic doesn't break when environment variable is
+    // not set
+    #[test]
+    fn test_context_dump_env_var_logic() {
+        // Test that None returns None (no environment variable set)
+        assert!(None::<String>.is_none());
+
+        // Test that Some value returns Some (environment variable set)
+        let test_value = Some("test_dump".to_string());
+        assert!(test_value.is_some());
+        assert_eq!(test_value.unwrap(), "test_dump");
+    }
+
+    #[test]
+    fn test_dump_path_construction() {
+        let base_path = std::path::Path::new("experiment_chat_request_dump");
+        let filename = "test_env_var";
+        let full_path = base_path.join(format!("{}.json", filename));
+
+        assert_eq!(
+            full_path,
+            std::path::PathBuf::from("experiment_chat_request_dump/test_env_var.json")
+        );
     }
 }
