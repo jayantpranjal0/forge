@@ -2,17 +2,28 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use forge_app::ProviderService;
 use forge_app::domain::{
     ChatCompletionMessage, Context as ChatContext, HttpConfig, Model, ModelId, Provider,
     ResultStream, RetryConfig,
 };
+use futures::stream::TryStreamExt;
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 use crate::EnvironmentInfra;
 use crate::http::HttpClient;
 use crate::infra::HttpInfra;
 use crate::provider::{Client, ClientBuilder};
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ChatRequestDump {
+    timestamp: DateTime<Utc>,
+    request: ChatContext,
+    response: Option<serde_json::Value>,
+    error: Option<String>,
+}
 #[derive(Clone)]
 pub struct ForgeProviderService<I: HttpInfra> {
     retry_config: Arc<RetryConfig>,
@@ -34,7 +45,7 @@ impl<I: EnvironmentInfra + HttpInfra> ForgeProviderService<I> {
             cached_models: Arc::new(Mutex::new(None)),
             version,
             timeout_config: env.http,
-            infra: infra,
+            infra,
         }
     }
 
@@ -57,6 +68,33 @@ impl<I: EnvironmentInfra + HttpInfra> ForgeProviderService<I> {
             }
         }
     }
+
+    async fn write_dump(&self, dump_file: &str, timestamp: DateTime<Utc>, dump_data: &ChatRequestDump) {
+        // Create the experiment_chat_request_dump directory if it doesn't exist
+        let dump_path = Path::new("experiment_chat_request_dump");
+        if let Err(e) = std::fs::create_dir_all(dump_path) {
+            eprintln!("Warning: Failed to create dump directory: {e}");
+            return;
+        }
+
+        // Create the filename with timestamp
+        let timestamp_str = timestamp.format("%Y-%m-%d_%H-%M-%S").to_string();
+        let file_path = dump_path.join(format!("{dump_file}_{timestamp_str}.json"));
+
+        // Serialize and write the dump data to JSON
+        match serde_json::to_string_pretty(dump_data) {
+            Ok(json_content) => {
+                if let Err(e) = std::fs::write(&file_path, json_content) {
+                    eprintln!("Warning: Failed to write context dump to {file_path:?}: {e}");
+                } else {
+                    println!("Context dumped to: {file_path:?}");
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: Failed to serialize context to JSON: {e}");
+            }
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -67,38 +105,88 @@ impl<I: EnvironmentInfra + HttpInfra> ProviderService for ForgeProviderService<I
         request: ChatContext,
         provider: Provider,
     ) -> ResultStream<ChatCompletionMessage, anyhow::Error> {
-        if let Some(dump_file) = self.infra.get_env_var("FORGE_CONTEXT_DUMP") {
-            let dump_path = Path::new("experiment_chat_request_dump");
-            if let Err(e) = std::fs::create_dir_all(dump_path) {
-                eprintln!("Warning: Failed to create dump directory: {e}");
-            } else {
-                // Create the filename from the environment variable
-                let file_path = dump_path.join(format!("{dump_file}.json"));
+        let dump_config = self.infra.get_env_var("FORGE_CONTEXT_DUMP");
+        let timestamp = Utc::now();
+        
+        // If dump is enabled, we need to capture the stream
+        if let Some(dump_file) = &dump_config {
+            let client = self.client(provider).await?;
+            
+            match client.chat(model, request.clone()).await {
+                Ok(stream) => {
+                    let request_clone = request.clone();
+                    let dump_file = dump_file.clone();
+                    
+                    // Collect all messages from the stream
+                    let captured_stream = stream.try_collect::<Vec<_>>().await;
 
-                // Serialize and write the context to JSON
-                match serde_json::to_string_pretty(&request) {
-                    Ok(json_content) => {
-                        if let Err(e) = std::fs::write(&file_path, json_content) {
-                            eprintln!(
-                                "Warning: Failed to write context dump to {file_path:?}: {e}"
+                    match captured_stream {
+                        Ok(messages) => {
+                            // Convert messages to a JSON representable format
+                            let response_debug: Vec<String> = messages
+                                .iter()
+                                .map(|msg| format!("{msg:?}"))
+                                .collect();
+                            
+                            // Create dump data with successful response
+                            let dump_data = ChatRequestDump {
+                                timestamp,
+                                request: request_clone,
+                                response: Some(serde_json::json!({
+                                    "messages_count": messages.len(),
+                                    "messages_debug": response_debug
+                                })),
+                                error: None,
+                            };
+                            
+                            // Write dump to file
+                            self.write_dump(&dump_file, timestamp, &dump_data).await;
+                            
+                            // Return the messages as a new stream
+                            let message_stream = futures::stream::iter(
+                                messages.into_iter().map(Ok)
                             );
-                        } else {
-                            println!("Context dumped to: {file_path:?}");
+                            Ok(Box::pin(message_stream) as forge_app::domain::BoxStream<ChatCompletionMessage, anyhow::Error>)
+                        }
+                        Err(e) => {
+                            // Create dump data with error
+                            let dump_data = ChatRequestDump {
+                                timestamp,
+                                request: request_clone,
+                                response: None,
+                                error: Some(e.to_string()),
+                            };
+                            
+                            // Write dump to file
+                            self.write_dump(&dump_file, timestamp, &dump_data).await;
+                            
+                            Err(e)
                         }
                     }
-                    Err(e) => {
-                        eprintln!("Warning: Failed to serialize context to JSON: {e}");
-                    }
+                }
+                Err(e) => {
+                    // Create dump data with error
+                    let dump_data = ChatRequestDump {
+                        timestamp,
+                        request,
+                        response: None,
+                        error: Some(e.to_string()),
+                    };
+                    
+                    // Write dump to file
+                    self.write_dump(&dump_file, timestamp, &dump_data).await;
+                    
+                    Err(e.context(format!("Failed to chat with model: {model}")))
                 }
             }
+        } else {
+            // Normal execution without dumping
+            let client = self.client(provider).await?;
+            client
+                .chat(model, request)
+                .await
+                .with_context(|| format!("Failed to chat with model: {model}"))
         }
-
-        let client = self.client(provider).await?;
-
-        client
-            .chat(model, request)
-            .await
-            .with_context(|| format!("Failed to chat with model: {model}"))
     }
 
     async fn models(&self, provider: Provider) -> Result<Vec<Model>> {
@@ -126,6 +214,8 @@ impl<I: EnvironmentInfra + HttpInfra> ProviderService for ForgeProviderService<I
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     // Test that the context dump logic doesn't break when environment variable is
     // not set
     #[test]
@@ -140,14 +230,42 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_path_construction() {
+    fn test_dump_path_construction_with_timestamp() {
         let base_path = std::path::Path::new("experiment_chat_request_dump");
         let filename = "test_env_var";
-        let full_path = base_path.join(format!("{}.json", filename));
+        let timestamp = "2024-01-01_12-30-45";
+        let full_path = base_path.join(format!("{filename}_{timestamp}.json"));
 
         assert_eq!(
             full_path,
-            std::path::PathBuf::from("experiment_chat_request_dump/test_env_var.json")
+            std::path::PathBuf::from("experiment_chat_request_dump/test_env_var_2024-01-01_12-30-45.json")
         );
+    }
+
+    #[test]
+    fn test_chat_request_dump_serialization() {
+        let timestamp = Utc::now();
+        let request = ChatContext::default();
+        let response = serde_json::json!({
+            "messages_count": 0,
+            "messages_debug": []
+        });
+
+        let dump_data =
+            ChatRequestDump { timestamp, request, response: Some(response), error: None };
+
+        // Should be able to serialize without errors
+        let json_result = serde_json::to_string_pretty(&dump_data);
+        assert!(json_result.is_ok());
+    }
+
+    #[test]
+    fn test_timestamp_formatting() {
+        let timestamp = DateTime::parse_from_rfc3339("2024-01-01T12:30:45Z")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        let formatted = timestamp.format("%Y-%m-%d_%H-%M-%S").to_string();
+        assert_eq!(formatted, "2024-01-01_12-30-45");
     }
 }
