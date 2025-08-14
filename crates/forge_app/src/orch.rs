@@ -12,6 +12,7 @@ use tracing::{debug, info, warn};
 
 use crate::agent::AgentService;
 use crate::compact::Compactor;
+use crate::services::Services;
 
 pub type ArcSender = Arc<tokio::sync::mpsc::Sender<anyhow::Result<ChatResponse>>>;
 
@@ -28,7 +29,7 @@ pub struct Orchestrator<S> {
     current_time: chrono::DateTime<chrono::Local>,
 }
 
-impl<S: AgentService> Orchestrator<S> {
+impl<S: AgentService + Services> Orchestrator<S> {
     pub fn new(
         services: Arc<S>,
         environment: Environment,
@@ -307,6 +308,13 @@ impl<S: AgentService> Orchestrator<S> {
 
         // Render the system prompts with the variables
         context = self.set_system_prompt(context, &agent, &variables).await?;
+
+        // Load AGENTS.md context before setting user prompt
+        context = crate::agents_md::load_agents_md_context(
+            context, 
+            &self.environment.cwd, 
+            self.services.as_ref()
+        ).await?;
 
         // Render user prompts
         context = self
