@@ -37,20 +37,35 @@ use crate::{
 #[serde(tag = "name", content = "arguments", rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum Tools {
+    #[strum(serialize = "fs_read", serialize = "forge_tool_fs_read")]
     ForgeToolFsRead(FSRead),
+    #[strum(serialize = "fs_create", serialize = "forge_tool_fs_create")]
     ForgeToolFsCreate(FSWrite),
+    #[strum(serialize = "fs_search", serialize = "forge_tool_fs_search")]
     ForgeToolFsSearch(FSSearch),
+    #[strum(serialize = "fs_remove", serialize = "forge_tool_fs_remove")]
     ForgeToolFsRemove(FSRemove),
+    #[strum(serialize = "fs_patch", serialize = "forge_tool_fs_patch")]
     ForgeToolFsPatch(FSPatch),
+    #[strum(serialize = "fs_undo", serialize = "forge_tool_fs_undo")]
     ForgeToolFsUndo(FSUndo),
+    #[strum(serialize = "shell", serialize = "forge_tool_process_shell")]
     ForgeToolProcessShell(Shell),
+    #[strum(serialize = "fetch", serialize = "forge_tool_net_fetch")]
     ForgeToolNetFetch(NetFetch),
+    #[strum(serialize = "followup", serialize = "forge_tool_followup")]
     ForgeToolFollowup(Followup),
+    #[strum(serialize = "tooL_completion", serialize = "forge_tool_attempt_completion")]
     ForgeToolAttemptCompletion(AttemptCompletion),
+    #[strum(serialize = "task_add", serialize = "forge_tool_task_list_append")]
     ForgeToolTaskListAppend(TaskListAppend),
+    #[strum(serialize = "task_add_multiple", serialize = "forge_tool_task_list_append_multiple")]
     ForgeToolTaskListAppendMultiple(TaskListAppendMultiple),
+    #[strum(serialize = "task_update", serialize = "forge_tool_task_list_update")]
     ForgeToolTaskListUpdate(TaskListUpdate),
+    #[strum(serialize = "task_list", serialize = "forge_tool_task_list_list")]
     ForgeToolTaskListList(TaskListList),
+    #[strum(serialize = "task_clear", serialize = "forge_tool_task_list_clear")]
     ForgeToolTaskListClear(TaskListClear),
 }
 
