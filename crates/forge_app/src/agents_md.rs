@@ -84,7 +84,7 @@ where
     
     // 2. Project-level shared notes: AGENTS.md at repo root
     let repo_root = find_repo_root(current_working_directory);
-    if let Some(root) = repo_root {
+    if let Some(ref root) = repo_root {
         let project_agents_md = root.join("AGENTS.md");
         paths.push(("project root".to_string(), project_agents_md));
     } else {
@@ -107,7 +107,19 @@ where
     
     // 3. Feature-specific guidance: AGENTS.md in current working directory
     let local_agents_md = current_working_directory.join("AGENTS.md");
-    paths.push(("current directory".to_string(), local_agents_md));
+    
+    // Only add current directory AGENTS.md if it's different from project root
+    let should_add_local = match &repo_root {
+        Some(root) => {
+            let project_agents_md = root.join("AGENTS.md");
+            project_agents_md != local_agents_md
+        }
+        None => true,
+    };
+    
+    if should_add_local {
+        paths.push(("current directory".to_string(), local_agents_md));
+    }
     
     paths
 }
