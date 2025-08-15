@@ -115,7 +115,7 @@ impl<S: Services> ToolRegistry<S> {
         let agent_tools = self.agent_executor.tool_agents().await?;
 
         let tools = Tools::iter()
-            .map(|tool| tool.definition())
+            .flat_map(|tool| tool.all_definitions())
             .chain(mcp_tools.into_iter())
             .chain(agent_tools.into_iter())
             .collect::<Vec<_>>();
@@ -155,6 +155,7 @@ impl<S> ToolRegistry<S> {
 mod tests {
     use forge_domain::{Agent, AgentId, ToolName, Tools, ToolsDiscriminants};
     use pretty_assertions::assert_eq;
+    use strum::IntoEnumIterator;
 
     use crate::tool_registry::ToolRegistry;
 
@@ -197,5 +198,53 @@ mod tests {
         );
 
         assert!(result.is_ok(), "Completion tool call should be valid");
+    }
+
+    #[tokio::test]
+    async fn test_tools_iter_includes_shorthand_names() {
+        // Test that when we iterate over Tools and collect all_definitions,
+        // we get both shorthand and full names
+        let all_definitions: Vec<_> = Tools::iter()
+            .flat_map(|tool| tool.all_definitions())
+            .collect();
+
+        // Should contain both shorthand and full names for the same tool
+        let fs_read_short = all_definitions
+            .iter()
+            .any(|tool| tool.name.as_str() == "fs_read");
+        let fs_read_full = all_definitions
+            .iter()
+            .any(|tool| tool.name.as_str() == "forge_tool_fs_read");
+
+        assert!(fs_read_short, "Should contain shorthand name 'fs_read'");
+        assert!(
+            fs_read_full,
+            "Should contain full name 'forge_tool_fs_read'"
+        );
+
+        // Check a few more examples
+        let shell_short = all_definitions
+            .iter()
+            .any(|tool| tool.name.as_str() == "shell");
+        let shell_full = all_definitions
+            .iter()
+            .any(|tool| tool.name.as_str() == "forge_tool_process_shell");
+
+        assert!(shell_short, "Should contain shorthand name 'shell'");
+        assert!(
+            shell_full,
+            "Should contain full name 'forge_tool_process_shell'"
+        );
+
+        // Verify we have more definitions than just the number of tools
+        // Since each tool should produce 2 definitions (shorthand + full name)
+        let tool_count = Tools::iter().count();
+        assert!(
+            all_definitions.len() == tool_count * 2,
+            "Should have exactly 2 definitions per tool: {} tools = {} definitions, but got {}",
+            tool_count,
+            tool_count * 2,
+            all_definitions.len()
+        );
     }
 }

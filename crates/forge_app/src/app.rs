@@ -55,6 +55,14 @@ impl<S: Services> ForgeApp<S> {
 
         // Get tool definitions and models
         let tool_definitions = self.tool_registry.list().await?;
+        tracing::debug!(
+            "Tool definitions: {}",
+            tool_definitions
+                .iter()
+                .map(|t| t.name.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
         let config = services.read_app_config().await.unwrap_or_default();
         let provider = services
             .get_provider(config)

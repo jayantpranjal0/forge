@@ -55,11 +55,17 @@ pub enum Tools {
     ForgeToolNetFetch(NetFetch),
     #[strum(serialize = "followup", serialize = "forge_tool_followup")]
     ForgeToolFollowup(Followup),
-    #[strum(serialize = "tooL_completion", serialize = "forge_tool_attempt_completion")]
+    #[strum(
+        serialize = "tooL_completion",
+        serialize = "forge_tool_attempt_completion"
+    )]
     ForgeToolAttemptCompletion(AttemptCompletion),
     #[strum(serialize = "task_add", serialize = "forge_tool_task_list_append")]
     ForgeToolTaskListAppend(TaskListAppend),
-    #[strum(serialize = "task_add_multiple", serialize = "forge_tool_task_list_append_multiple")]
+    #[strum(
+        serialize = "task_add_multiple",
+        serialize = "forge_tool_task_list_append_multiple"
+    )]
     ForgeToolTaskListAppendMultiple(TaskListAppendMultiple),
     #[strum(serialize = "task_update", serialize = "forge_tool_task_list_update")]
     ForgeToolTaskListUpdate(TaskListUpdate),
@@ -601,9 +607,10 @@ impl ToolDescription for Tools {
     }
 }
 lazy_static::lazy_static! {
-    // Cache of all tool names
+    // Cache of all tool names (including shorthand names)
     static ref FORGE_TOOLS: HashSet<ToolName> = Tools::iter()
-        .map(ToolName::new)
+        .flat_map(|tool| tool.all_definitions())
+        .map(|def| def.name)
         .collect();
 }
 
@@ -647,6 +654,41 @@ impl Tools {
         ToolDefinition::new(self)
             .description(self.description())
             .input_schema(self.schema())
+    }
+
+    /// Returns all definitions for this tool (both shorthand and full names)
+    pub fn all_definitions(&self) -> Vec<ToolDefinition> {
+        let mut definitions = Vec::new();
+
+        // Add the shorthand definition
+        let shorthand_name = match self {
+            Tools::ForgeToolFsRead(_) => "fs_read",
+            Tools::ForgeToolFsCreate(_) => "fs_create",
+            Tools::ForgeToolFsSearch(_) => "fs_search",
+            Tools::ForgeToolFsRemove(_) => "fs_remove",
+            Tools::ForgeToolFsPatch(_) => "fs_patch",
+            Tools::ForgeToolFsUndo(_) => "fs_undo",
+            Tools::ForgeToolProcessShell(_) => "shell",
+            Tools::ForgeToolNetFetch(_) => "fetch",
+            Tools::ForgeToolFollowup(_) => "followup",
+            Tools::ForgeToolAttemptCompletion(_) => "tooL_completion",
+            Tools::ForgeToolTaskListAppend(_) => "task_add",
+            Tools::ForgeToolTaskListAppendMultiple(_) => "task_add_multiple",
+            Tools::ForgeToolTaskListUpdate(_) => "task_update",
+            Tools::ForgeToolTaskListList(_) => "task_list",
+            Tools::ForgeToolTaskListClear(_) => "task_clear",
+        };
+
+        definitions.push(
+            ToolDefinition::new(shorthand_name)
+                .description(self.description())
+                .input_schema(self.schema()),
+        );
+
+        // Add the full name definition
+        definitions.push(self.definition());
+
+        definitions
     }
     pub fn contains(tool_name: &ToolName) -> bool {
         FORGE_TOOLS.contains(tool_name)
@@ -773,5 +815,36 @@ mod tests {
         assert!(
             matches!(result.unwrap(), Tools::ForgeToolFsCreate(data) if data.path == "/some/path/foo.txt" && data.content == "Hello, World!")
         );
+    }
+
+    #[test]
+    fn test_tools_all_definitions_includes_shorthand_names() {
+        // Test with one tool to verify both shorthand and full names are included
+        let tool = Tools::ForgeToolFsRead(Default::default());
+        let definitions = tool.all_definitions();
+
+        assert_eq!(definitions.len(), 2);
+
+        // Should have shorthand name
+        assert!(definitions.iter().any(|def| def.name.as_str() == "fs_read"));
+
+        // Should have full name
+        assert!(
+            definitions
+                .iter()
+                .any(|def| def.name.as_str() == "forge_tool_fs_read")
+        );
+    }
+
+    #[test]
+    fn test_forge_tools_contains_shorthand_names() {
+        // Test that the FORGE_TOOLS set includes shorthand names
+        assert!(Tools::contains(&ToolName::new("fs_read")));
+        assert!(Tools::contains(&ToolName::new("forge_tool_fs_read")));
+        assert!(Tools::contains(&ToolName::new("shell")));
+        assert!(Tools::contains(&ToolName::new("forge_tool_process_shell")));
+
+        // Should not contain invalid names
+        assert!(!Tools::contains(&ToolName::new("invalid_tool")));
     }
 }
