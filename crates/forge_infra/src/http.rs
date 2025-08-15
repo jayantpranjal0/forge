@@ -145,12 +145,19 @@ impl ForgeHttpInfra {
         let mut request_headers = self.headers(headers);
         request_headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-        self.client
+        let es = self
+            .client
             .post(url.clone())
             .headers(request_headers)
             .body(body)
             .eventsource()
-            .with_context(|| format_http_context(None, "POST (EventSource)", url))
+            .with_context(|| format_http_context(None, "POST (EventSource)", url));
+        if let Err(ref err) = es {
+            tracing::debug!(error = %err, "EventSource request failed");
+        } else {
+            tracing::debug!("EventSource request succeeded");
+        }
+        es
     }
 
     fn sanitize_headers(headers: &HeaderMap) -> HeaderMap {

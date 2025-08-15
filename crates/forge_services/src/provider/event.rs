@@ -20,6 +20,7 @@ where
     source
             .take_while(|message| !matches!(message, Err(reqwest_eventsource::Error::StreamEnded)))
             .then(|event| async {
+                // tracing::debug!(event = ?event, "Received event from OpenAI");
                 match event {
                     Ok(event) => match event {
                         Event::Open => None,
@@ -64,10 +65,35 @@ where
                                 },
                             ))
                         }
-                        reqwest_eventsource::Error::InvalidContentType(_, ref response) => {
+                        reqwest_eventsource::Error::InvalidContentType(_, response) => {
                             let status_code = response.status();
-                            debug!(response = ?response, "Invalid content type");
-                            Some(Err(error).with_context(|| format!("Http Status: {status_code}")))
+                            debug!(response = ?response, "Invalid content type, attempting to parse as JSON response");
+
+                            // Try to read the response body as JSON
+                            match response.text().await {
+                                Ok(body) => {
+                                    match serde_json::from_str::<Response>(&body) {
+                                        Ok(parsed_response) => {
+                                            // Successfully parsed as JSON, convert to ChatCompletionMessage
+                                            match ChatCompletionMessage::try_from(parsed_response) {
+                                                Ok(message) => Some(Ok(message)),
+                                                Err(conversion_error) => {
+                                                    debug!(error = ?conversion_error, body = %body, "Failed to convert JSON response to ChatCompletionMessage");
+                                                    Some(Err(conversion_error))
+                                                }
+                                            }
+                                        }
+                                        Err(parse_error) => {
+                                            debug!(error = ?parse_error, body = %body, "Failed to parse response body as JSON");
+                                            Some(Err(anyhow::anyhow!("Invalid content type with non-JSON body")).with_context(|| format!("Http Status: {status_code}, Invalid JSON: {parse_error}")))
+                                        }
+                                    }
+                                }
+                                Err(read_error) => {
+                                    debug!(error = ?read_error, "Failed to read response body");
+                                    Some(Err(anyhow::anyhow!("Invalid content type and failed to read body")).with_context(|| format!("Http Status: {status_code}, Failed to read body: {read_error}")))
+                                }
+                            }
                         }
                         error => {
                             tracing::error!(error = ?error, "Failed to receive chat completion event");
