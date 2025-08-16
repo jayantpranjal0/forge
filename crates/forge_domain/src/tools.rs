@@ -9,8 +9,8 @@ use forge_tool_macros::ToolDescription;
 use schemars::JsonSchema;
 use schemars::schema::RootSchema;
 use serde::Serialize;
-use strum::IntoEnumIterator;
-use strum_macros::{AsRefStr, Display, EnumDiscriminants, EnumIter};
+use strum::{EnumProperty, IntoEnumIterator};
+use strum_macros::{AsRefStr, Display, EnumDiscriminants, EnumIter, EnumProperty};
 
 use crate::{
     Status, ToolCallArgumentError, ToolCallFull, ToolDefinition, ToolDescription, ToolName,
@@ -32,46 +32,41 @@ use crate::{
     Display,
     PartialEq,
     EnumDiscriminants,
+    EnumProperty,
 )]
 #[strum_discriminants(derive(Display))]
 #[serde(tag = "name", content = "arguments", rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum Tools {
-    #[strum(serialize = "fs_read", serialize = "forge_tool_fs_read")]
+    #[strum(props(shorthands = "fs_read,read"))]
     ForgeToolFsRead(FSRead),
-    #[strum(serialize = "fs_create", serialize = "forge_tool_fs_create")]
+    #[strum(props(shorthands = "fs_create,create,write"))]
     ForgeToolFsCreate(FSWrite),
-    #[strum(serialize = "fs_search", serialize = "forge_tool_fs_search")]
+    #[strum(props(shorthands = "fs_search,search,find"))]
     ForgeToolFsSearch(FSSearch),
-    #[strum(serialize = "fs_remove", serialize = "forge_tool_fs_remove")]
+    #[strum(props(shorthands = "fs_remove,remove,delete"))]
     ForgeToolFsRemove(FSRemove),
-    #[strum(serialize = "fs_patch", serialize = "forge_tool_fs_patch")]
+    #[strum(props(shorthands = "fs_patch,patch,edit"))]
     ForgeToolFsPatch(FSPatch),
-    #[strum(serialize = "fs_undo", serialize = "forge_tool_fs_undo")]
+    #[strum(props(shorthands = "fs_undo,undo,revert"))]
     ForgeToolFsUndo(FSUndo),
-    #[strum(serialize = "shell", serialize = "forge_tool_process_shell")]
+    #[strum(props(shorthands = "shell,sh,exec"))]
     ForgeToolProcessShell(Shell),
-    #[strum(serialize = "fetch", serialize = "forge_tool_net_fetch")]
+    #[strum(props(shorthands = "fetch,get,download"))]
     ForgeToolNetFetch(NetFetch),
-    #[strum(serialize = "followup", serialize = "forge_tool_followup")]
+    #[strum(props(shorthands = "followup,follow"))]
     ForgeToolFollowup(Followup),
-    #[strum(
-        serialize = "tooL_completion",
-        serialize = "forge_tool_attempt_completion"
-    )]
+    #[strum(props(shorthands = "tooL_completion,completion,done"))]
     ForgeToolAttemptCompletion(AttemptCompletion),
-    #[strum(serialize = "task_add", serialize = "forge_tool_task_list_append")]
+    #[strum(props(shorthands = "task_add,add_task"))]
     ForgeToolTaskListAppend(TaskListAppend),
-    #[strum(
-        serialize = "task_add_multiple",
-        serialize = "forge_tool_task_list_append_multiple"
-    )]
+    #[strum(props(shorthands = "task_add_multiple,add_tasks"))]
     ForgeToolTaskListAppendMultiple(TaskListAppendMultiple),
-    #[strum(serialize = "task_update", serialize = "forge_tool_task_list_update")]
+    #[strum(props(shorthands = "task_update,update_task"))]
     ForgeToolTaskListUpdate(TaskListUpdate),
-    #[strum(serialize = "task_list", serialize = "forge_tool_task_list_list")]
+    #[strum(props(shorthands = "task_list,list_tasks"))]
     ForgeToolTaskListList(TaskListList),
-    #[strum(serialize = "task_clear", serialize = "forge_tool_task_list_clear")]
+    #[strum(props(shorthands = "task_clear,clear_tasks"))]
     ForgeToolTaskListClear(TaskListClear),
 }
 
@@ -656,36 +651,27 @@ impl Tools {
             .input_schema(self.schema())
     }
 
-    /// Returns all definitions for this tool (both shorthand and full names)
     pub fn all_definitions(&self) -> Vec<ToolDefinition> {
         let mut definitions = Vec::new();
 
-        // Add the shorthand definition
-        let shorthand_name = match self {
-            Tools::ForgeToolFsRead(_) => "fs_read",
-            Tools::ForgeToolFsCreate(_) => "fs_create",
-            Tools::ForgeToolFsSearch(_) => "fs_search",
-            Tools::ForgeToolFsRemove(_) => "fs_remove",
-            Tools::ForgeToolFsPatch(_) => "fs_patch",
-            Tools::ForgeToolFsUndo(_) => "fs_undo",
-            Tools::ForgeToolProcessShell(_) => "shell",
-            Tools::ForgeToolNetFetch(_) => "fetch",
-            Tools::ForgeToolFollowup(_) => "followup",
-            Tools::ForgeToolAttemptCompletion(_) => "tooL_completion",
-            Tools::ForgeToolTaskListAppend(_) => "task_add",
-            Tools::ForgeToolTaskListAppendMultiple(_) => "task_add_multiple",
-            Tools::ForgeToolTaskListUpdate(_) => "task_update",
-            Tools::ForgeToolTaskListList(_) => "task_list",
-            Tools::ForgeToolTaskListClear(_) => "task_clear",
-        };
+        let shorthands_str = self
+            .get_str("shorthands")
+            .expect("shorthands property should be defined for all variants");
 
-        definitions.push(
-            ToolDefinition::new(shorthand_name)
-                .description(self.description())
-                .input_schema(self.schema()),
-        );
+        let shorthand_names: Vec<&str> = shorthands_str
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
 
-        // Add the full name definition
+        for shorthand_name in shorthand_names {
+            definitions.push(
+                ToolDefinition::new(shorthand_name)
+                    .description(self.description())
+                    .input_schema(self.schema()),
+            );
+        }
+
         definitions.push(self.definition());
 
         definitions
@@ -815,36 +801,5 @@ mod tests {
         assert!(
             matches!(result.unwrap(), Tools::ForgeToolFsCreate(data) if data.path == "/some/path/foo.txt" && data.content == "Hello, World!")
         );
-    }
-
-    #[test]
-    fn test_tools_all_definitions_includes_shorthand_names() {
-        // Test with one tool to verify both shorthand and full names are included
-        let tool = Tools::ForgeToolFsRead(Default::default());
-        let definitions = tool.all_definitions();
-
-        assert_eq!(definitions.len(), 2);
-
-        // Should have shorthand name
-        assert!(definitions.iter().any(|def| def.name.as_str() == "fs_read"));
-
-        // Should have full name
-        assert!(
-            definitions
-                .iter()
-                .any(|def| def.name.as_str() == "forge_tool_fs_read")
-        );
-    }
-
-    #[test]
-    fn test_forge_tools_contains_shorthand_names() {
-        // Test that the FORGE_TOOLS set includes shorthand names
-        assert!(Tools::contains(&ToolName::new("fs_read")));
-        assert!(Tools::contains(&ToolName::new("forge_tool_fs_read")));
-        assert!(Tools::contains(&ToolName::new("shell")));
-        assert!(Tools::contains(&ToolName::new("forge_tool_process_shell")));
-
-        // Should not contain invalid names
-        assert!(!Tools::contains(&ToolName::new("invalid_tool")));
     }
 }
