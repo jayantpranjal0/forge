@@ -155,7 +155,6 @@ impl<S> ToolRegistry<S> {
 mod tests {
     use forge_domain::{Agent, AgentId, ToolName, Tools, ToolsDiscriminants};
     use pretty_assertions::assert_eq;
-    use strum::IntoEnumIterator;
 
     use crate::tool_registry::ToolRegistry;
 
