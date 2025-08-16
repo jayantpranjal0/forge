@@ -84,10 +84,23 @@ pub struct FsCreateOutput {
 #[derive(Debug)]
 pub struct FsRemoveOutput {}
 
+#[derive(Debug)]
+pub struct PlanCreateOutput {
+    pub path: PathBuf,
+    // Set when the file already exists
+    pub before: Option<String>,
+}
+
 #[derive(Default, Debug, derive_more::From)]
 pub struct FsUndoOutput {
     pub before_undo: Option<String>,
     pub after_undo: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct PolicyDecision {
+    pub allowed: bool,
+    pub path: Option<PathBuf>,
 }
 
 #[async_trait::async_trait]
@@ -206,6 +219,17 @@ pub trait FsCreateService: Send + Sync {
 }
 
 #[async_trait::async_trait]
+pub trait PlanCreateService: Send + Sync {
+    /// Create a plan file with the specified name and version.
+    async fn create_plan(
+        &self,
+        plan_name: String,
+        version: String,
+        content: String,
+    ) -> anyhow::Result<PlanCreateOutput>;
+}
+
+#[async_trait::async_trait]
 pub trait FsPatchService: Send + Sync {
     /// Patches a file at the specified path with the given content.
     async fn patch(
@@ -306,6 +330,17 @@ pub trait AgentLoaderService: Send + Sync {
     async fn load_agents(&self) -> anyhow::Result<Vec<Agent>>;
 }
 
+#[async_trait::async_trait]
+pub trait PolicyService: Send + Sync {
+    /// Check if an operation is allowed and handle user confirmation if needed
+    /// Returns PolicyDecision with allowed flag and optional policy file path
+    /// (only when created)
+    async fn check_operation_permission(
+        &self,
+        operation: &forge_domain::PermissionOperation,
+    ) -> anyhow::Result<PolicyDecision>;
+}
+
 /// Core app trait providing access to services and repositories.
 /// This trait follows clean architecture principles for dependency management
 /// and service/repository composition.
@@ -319,6 +354,7 @@ pub trait Services: Send + Sync + 'static + Clone {
     type FileDiscoveryService: FileDiscoveryService;
     type McpConfigManager: McpConfigManager;
     type FsCreateService: FsCreateService;
+    type PlanCreateService: PlanCreateService;
     type FsPatchService: FsPatchService;
     type FsReadService: FsReadService;
     type FsRemoveService: FsRemoveService;
@@ -332,6 +368,7 @@ pub trait Services: Send + Sync + 'static + Clone {
     type AppConfigService: AppConfigService;
     type ProviderRegistry: ProviderRegistry;
     type AgentLoaderService: AgentLoaderService;
+    type PolicyService: PolicyService;
 
     fn provider_service(&self) -> &Self::ProviderService;
     fn conversation_service(&self) -> &Self::ConversationService;
@@ -341,6 +378,7 @@ pub trait Services: Send + Sync + 'static + Clone {
     fn file_discovery_service(&self) -> &Self::FileDiscoveryService;
     fn mcp_config_manager(&self) -> &Self::McpConfigManager;
     fn fs_create_service(&self) -> &Self::FsCreateService;
+    fn plan_create_service(&self) -> &Self::PlanCreateService;
     fn fs_patch_service(&self) -> &Self::FsPatchService;
     fn fs_read_service(&self) -> &Self::FsReadService;
     fn fs_remove_service(&self) -> &Self::FsRemoveService;
@@ -355,6 +393,7 @@ pub trait Services: Send + Sync + 'static + Clone {
     fn app_config_service(&self) -> &Self::AppConfigService;
     fn provider_registry(&self) -> &Self::ProviderRegistry;
     fn agent_loader_service(&self) -> &Self::AgentLoaderService;
+    fn policy_service(&self) -> &Self::PolicyService;
 }
 
 #[async_trait::async_trait]
@@ -484,6 +523,20 @@ impl<I: Services> FsCreateService for I {
     ) -> anyhow::Result<FsCreateOutput> {
         self.fs_create_service()
             .create(path, content, overwrite, capture_snapshot)
+            .await
+    }
+}
+
+#[async_trait::async_trait]
+impl<I: Services> PlanCreateService for I {
+    async fn create_plan(
+        &self,
+        plan_name: String,
+        version: String,
+        content: String,
+    ) -> anyhow::Result<PlanCreateOutput> {
+        self.plan_create_service()
+            .create_plan(plan_name, version, content)
             .await
     }
 }
@@ -641,5 +694,17 @@ pub trait HttpClientService: Send + Sync + 'static {
 impl<I: Services> AgentLoaderService for I {
     async fn load_agents(&self) -> anyhow::Result<Vec<Agent>> {
         self.agent_loader_service().load_agents().await
+    }
+}
+
+#[async_trait::async_trait]
+impl<I: Services> PolicyService for I {
+    async fn check_operation_permission(
+        &self,
+        operation: &forge_domain::PermissionOperation,
+    ) -> anyhow::Result<PolicyDecision> {
+        self.policy_service()
+            .check_operation_permission(operation)
+            .await
     }
 }

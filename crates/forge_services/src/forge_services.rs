@@ -11,11 +11,12 @@ use crate::discovery::ForgeDiscoveryService;
 use crate::env::ForgeEnvironmentService;
 use crate::infra::HttpInfra;
 use crate::mcp::{ForgeMcpManager, ForgeMcpService};
+use crate::policy::ForgePolicyService;
 use crate::provider::{ForgeProviderRegistry, ForgeProviderService};
 use crate::template::ForgeTemplateService;
 use crate::tool_services::{
     ForgeFetch, ForgeFollowup, ForgeFsCreate, ForgeFsPatch, ForgeFsRead, ForgeFsRemove,
-    ForgeFsSearch, ForgeFsUndo, ForgeShell,
+    ForgeFsSearch, ForgeFsUndo, ForgePlanCreate, ForgeShell,
 };
 use crate::workflow::ForgeWorkflowService;
 use crate::{
@@ -43,6 +44,7 @@ pub struct ForgeServices<F: HttpInfra + EnvironmentInfra + McpServerInfra + Walk
     discovery_service: Arc<ForgeDiscoveryService<F>>,
     mcp_manager: Arc<ForgeMcpManager<F>>,
     file_create_service: Arc<ForgeFsCreate<F>>,
+    plan_create_service: Arc<ForgePlanCreate<F>>,
     file_read_service: Arc<ForgeFsRead<F>>,
     file_search_service: Arc<ForgeFsSearch<F>>,
     file_remove_service: Arc<ForgeFsRemove<F>>,
@@ -57,6 +59,7 @@ pub struct ForgeServices<F: HttpInfra + EnvironmentInfra + McpServerInfra + Walk
     auth_service: Arc<AuthService<F>>,
     provider_service: Arc<ForgeProviderRegistry<F>>,
     agent_loader_service: Arc<ForgeAgentLoaderService<F>>,
+    policy_service: ForgePolicyService<F>,
 }
 
 impl<
@@ -66,7 +69,9 @@ impl<
         + FileInfoInfra
         + FileReaderInfra
         + HttpInfra
-        + WalkerInfra,
+        + WalkerInfra
+        + DirectoryReaderInfra
+        + UserInfra,
 > ForgeServices<F>
 {
     pub fn new(infra: Arc<F>) -> Self {
@@ -82,6 +87,7 @@ impl<
         let auth_service = Arc::new(ForgeAuthService::new(infra.clone()));
         let chat_service = Arc::new(ForgeProviderService::<F>::new(infra.clone()));
         let file_create_service = Arc::new(ForgeFsCreate::new(infra.clone()));
+        let plan_create_service = Arc::new(ForgePlanCreate::new(infra.clone()));
         let file_read_service = Arc::new(ForgeFsRead::new(infra.clone()));
         let file_search_service = Arc::new(ForgeFsSearch::new(infra.clone()));
         let file_remove_service = Arc::new(ForgeFsRemove::new(infra.clone()));
@@ -93,6 +99,8 @@ impl<
         let provider_service = Arc::new(ForgeProviderRegistry::new(infra.clone()));
         let env_service = Arc::new(ForgeEnvironmentService::new(infra.clone()));
         let agent_loader_service = Arc::new(ForgeAgentLoaderService::new(infra.clone()));
+        let policy_service = ForgePolicyService::new(infra.clone());
+
         Self {
             conversation_service,
             attachment_service,
@@ -101,6 +109,7 @@ impl<
             discovery_service: suggestion_service,
             mcp_manager,
             file_create_service,
+            plan_create_service,
             file_read_service,
             file_search_service,
             file_remove_service,
@@ -116,6 +125,7 @@ impl<
             chat_service,
             provider_service,
             agent_loader_service,
+            policy_service,
         }
     }
 }
@@ -146,6 +156,7 @@ impl<
     type FileDiscoveryService = ForgeDiscoveryService<F>;
     type McpConfigManager = ForgeMcpManager<F>;
     type FsCreateService = ForgeFsCreate<F>;
+    type PlanCreateService = ForgePlanCreate<F>;
     type FsPatchService = ForgeFsPatch<F>;
     type FsReadService = ForgeFsRead<F>;
     type FsRemoveService = ForgeFsRemove<F>;
@@ -159,6 +170,7 @@ impl<
     type AuthService = AuthService<F>;
     type ProviderRegistry = ForgeProviderRegistry<F>;
     type AgentLoaderService = ForgeAgentLoaderService<F>;
+    type PolicyService = ForgePolicyService<F>;
 
     fn provider_service(&self) -> &Self::ProviderService {
         &self.chat_service
@@ -194,6 +206,10 @@ impl<
 
     fn fs_create_service(&self) -> &Self::FsCreateService {
         &self.file_create_service
+    }
+
+    fn plan_create_service(&self) -> &Self::PlanCreateService {
+        &self.plan_create_service
     }
 
     fn fs_patch_service(&self) -> &Self::FsPatchService {
@@ -245,5 +261,9 @@ impl<
     }
     fn agent_loader_service(&self) -> &Self::AgentLoaderService {
         &self.agent_loader_service
+    }
+
+    fn policy_service(&self) -> &Self::PolicyService {
+        &self.policy_service
     }
 }
