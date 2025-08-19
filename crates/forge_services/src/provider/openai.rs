@@ -60,13 +60,13 @@ impl<H: HttpClientService> OpenAIProvider<H> {
             serde_json::to_vec(&request).with_context(|| "Failed to serialize request")?;
 
         if !request.stream.unwrap_or(false) {
-                let message = into_chat_completion_message_post::<Response, _>(
-                    url.clone(),
-                    Some(headers),
-                    json_bytes.into(),
-                    self.http.as_ref(),
-                )
-                .await?;
+            let message = into_chat_completion_message_post::<Response, _>(
+                url.clone(),
+                Some(headers),
+                json_bytes.into(),
+                self.http.as_ref(),
+            )
+            .await?;
             return Ok(Box::pin(tokio_stream::once(Ok(message))));
         }
         let es = self

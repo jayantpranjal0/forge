@@ -4,7 +4,7 @@ use anyhow::Context;
 use bytes::Bytes;
 use forge_domain::{HttpConfig, TlsBackend, TlsVersion};
 use forge_services::HttpInfra;
-use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, CONTENT_TYPE};
+use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use reqwest::redirect::Policy;
 use reqwest::{Client, Response, StatusCode, Url};
 use reqwest_eventsource::{EventSource, RequestBuilderExt};
