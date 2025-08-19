@@ -40,7 +40,7 @@ impl<H: HttpClientService> OpenAIProvider<H> {
         model: &ModelId,
         context: ChatContext,
     ) -> ResultStream<ChatCompletionMessage, anyhow::Error> {
-        let mut request = Request::from(context).model(model.clone()).stream(true);
+        let mut request = Request::from(context).model(model.clone()).stream(false);
         let mut pipeline = ProviderPipeline::new(&self.provider);
         request = pipeline.transform(request);
 
@@ -187,15 +187,7 @@ mod tests {
         async fn post(
             &self,
             _url: &reqwest::Url,
-            _body: Bytes,
-        ) -> anyhow::Result<reqwest::Response> {
-            unimplemented!()
-        }
-
-        async fn post_with_headers(
-            &self,
-            _url: &reqwest::Url,
-            _headers: HeaderMap,
+            _headers: Option<HeaderMap>,
             _body: Bytes,
         ) -> anyhow::Result<reqwest::Response> {
             unimplemented!()

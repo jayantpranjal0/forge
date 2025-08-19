@@ -205,14 +205,10 @@ mod tests {
             Err(anyhow::anyhow!("Mock HTTP client - no real requests"))
         }
 
-        async fn post(&self, _url: &Url, _body: Bytes) -> anyhow::Result<reqwest::Response> {
-            Err(anyhow::anyhow!("Mock HTTP client - no real requests"))
-        }
-
-        async fn post_with_headers(
+        async fn post(
             &self,
             _url: &Url,
-            _headers: HeaderMap,
+            _headers: Option<HeaderMap>,
             _body: Bytes,
         ) -> anyhow::Result<reqwest::Response> {
             Err(anyhow::anyhow!("Mock HTTP client - no real requests"))

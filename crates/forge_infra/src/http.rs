@@ -70,25 +70,14 @@ impl ForgeHttpInfra {
         .await
     }
 
-    async fn post(&self, url: &Url, body: Bytes) -> anyhow::Result<Response> {
-        self.execute_request("POST", url, |client| {
-            client
-                .post(url.clone())
-                .headers(self.headers(None))
-                .body(body)
-        })
-        .await
-    }
-
-    async fn post_with_headers(
+    async fn post(
         &self,
         url: &Url,
-        headers: HeaderMap,
+        headers: Option<HeaderMap>,
         body: Bytes,
     ) -> anyhow::Result<Response> {
         self.execute_request("POST", url, |client| {
-            let mut request_headers = self.headers(Some(headers));
-            client.post(url.clone()).headers(request_headers).body(body)
+            client.post(url.clone()).headers(self.headers(headers)).body(body)
         })
         .await
     }
@@ -199,17 +188,13 @@ impl HttpInfra for ForgeHttpInfra {
         self.get(url, headers).await
     }
 
-    async fn post(&self, url: &Url, body: Bytes) -> anyhow::Result<Response> {
-        self.post(url, body).await
-    }
-
-    async fn post_with_headers(
+    async fn post(
         &self,
         url: &Url,
-        headers: HeaderMap,
+        headers: Option<HeaderMap>,
         body: Bytes,
     ) -> anyhow::Result<Response> {
-        self.post_with_headers(url, headers, body).await
+        self.post(url, headers, body).await
     }
 
     async fn delete(&self, url: &Url) -> anyhow::Result<Response> {

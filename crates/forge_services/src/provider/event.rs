@@ -97,7 +97,7 @@ where
     H: HttpClientService,
 {
     let response = http_client
-        .post_with_headers(&url, headers, body)
+        .post(&url, Some(headers), body)
         .await
         .with_context(|| format_http_context(None, "POST", &url))?;
 

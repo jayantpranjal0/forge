@@ -22,16 +22,13 @@ impl<T: HttpInfra> HttpClientService for HttpClient<T> {
     async fn get(&self, url: &Url, headers: Option<HeaderMap>) -> anyhow::Result<Response> {
         self.0.get(url, headers).await
     }
-    async fn post(&self, url: &Url, body: bytes::Bytes) -> anyhow::Result<Response> {
-        self.0.post(url, body).await
-    }
-    async fn post_with_headers(
+    async fn post(
         &self,
         url: &Url,
-        headers: HeaderMap,
+        headers: Option<HeaderMap>,
         body: bytes::Bytes,
     ) -> anyhow::Result<Response> {
-        self.0.post_with_headers(url, headers, body).await
+        self.0.post(url, headers, body).await
     }
     async fn delete(&self, url: &Url) -> anyhow::Result<Response> {
         self.0.delete(url).await

@@ -241,18 +241,14 @@ impl HttpInfra for ForgeInfra {
         self.http_service.get(url, headers).await
     }
 
-    async fn post(&self, url: &Url, body: Bytes) -> anyhow::Result<Response> {
-        self.http_service.post(url, body).await
-    }
-
-    async fn post_with_headers(
+    async fn post(
         &self,
         url: &Url,
-        headers: HeaderMap,
+        headers: Option<HeaderMap>,
         body: Bytes,
     ) -> anyhow::Result<Response> {
         self.http_service
-            .post_with_headers(url, headers, body)
+            .post(url, headers, body)
             .await
     }
 

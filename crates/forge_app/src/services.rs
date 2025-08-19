@@ -678,11 +678,10 @@ impl<I: Services> AuthService for I {
 #[async_trait::async_trait]
 pub trait HttpClientService: Send + Sync + 'static {
     async fn get(&self, url: &Url, headers: Option<HeaderMap>) -> anyhow::Result<Response>;
-    async fn post(&self, url: &Url, body: bytes::Bytes) -> anyhow::Result<Response>;
-    async fn post_with_headers(
+    async fn post(
         &self,
         url: &Url,
-        headers: HeaderMap,
+        headers: Option<HeaderMap>,
         body: bytes::Bytes,
     ) -> anyhow::Result<Response>;
     async fn delete(&self, url: &Url) -> anyhow::Result<Response>;
