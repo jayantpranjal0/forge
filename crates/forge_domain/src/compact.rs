@@ -130,9 +130,9 @@ impl Compact {
         &self,
         context: &Context,
         token_count: usize,
-        model: Option<&crate::Model>,
+        desired_context_length: Option<usize>,
     ) -> bool {
-        self.should_compact_due_to_tokens(token_count, model)
+        self.should_compact_due_to_tokens(token_count, desired_context_length)
             || self.should_compact_due_to_turns(context)
             || self.should_compact_due_to_messages(context)
             || self.should_compact_on_turn_end(context)
@@ -143,11 +143,9 @@ impl Compact {
     fn should_compact_due_to_tokens(
         &self,
         token_count: usize,
-        model: Option<&crate::Model>,
+        desired_context_length: Option<usize>,
     ) -> bool {
-        let effective_token_threshold = self
-            .token_threshold
-            .or_else(|| model.and_then(|m| m.desired_context_length));
+        let effective_token_threshold = self.token_threshold.or(desired_context_length);
 
         if let Some(token_threshold) = effective_token_threshold {
             debug!(tokens = ?token_count, threshold = ?token_threshold, "Token count check");

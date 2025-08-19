@@ -26,6 +26,7 @@ pub struct Orchestrator<S> {
     models: Vec<Model>,
     files: Vec<String>,
     current_time: chrono::DateTime<chrono::Local>,
+    desired_context_length: Option<usize>,
 }
 
 impl<S: AgentService> Orchestrator<S> {
@@ -44,6 +45,7 @@ impl<S: AgentService> Orchestrator<S> {
             models: Default::default(),
             files: Default::default(),
             current_time,
+            desired_context_length: None,
         }
     }
 
@@ -268,14 +270,7 @@ impl<S: AgentService> Orchestrator<S> {
         // Estimate token count for compaction decision
         let token_count = context.token_count();
 
-        // Find the model for this agent
-        let model = if let Some(agent_model_id) = &agent.model {
-            self.models.iter().find(|m| &m.id == agent_model_id)
-        } else {
-            None
-        };
-
-        if agent.should_compact(context, *token_count, model) {
+        if agent.should_compact(context, *token_count, self.desired_context_length) {
             info!(agent_id = %agent.id, "Compaction needed");
             Compactor::new(self.services.clone())
                 .compact(agent, context.clone(), false)
@@ -304,6 +299,10 @@ impl<S: AgentService> Orchestrator<S> {
             .ok_or(Error::MissingModel(agent.id.clone()))?;
         let tool_supported = self.is_tool_supported(&agent)?;
         let reasoning_supported = self.is_reasoning_supported(&agent)?;
+        // Set desired_context_length from the model configuration
+        if let Some(model) = self.models.iter().find(|model| model.id == model_id) {
+            self.desired_context_length = model.desired_context_length;
+        }
 
         let mut context = self.conversation.context.clone().unwrap_or_default();
 

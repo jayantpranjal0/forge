@@ -258,11 +258,11 @@ impl Agent {
         &self,
         context: &Context,
         token_count: usize,
-        model: Option<&crate::Model>,
+        desired_context_length: Option<usize>,
     ) -> bool {
         // Return false if compaction is not configured
         if let Some(compact) = &self.compact {
-            compact.should_compact(context, token_count, model)
+            compact.should_compact(context, token_count, desired_context_length)
         } else {
             false
         }
