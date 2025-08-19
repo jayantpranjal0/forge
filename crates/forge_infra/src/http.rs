@@ -83,11 +83,11 @@ impl ForgeHttpInfra {
     async fn post_with_headers(
         &self,
         url: &Url,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
         body: Bytes,
     ) -> anyhow::Result<Response> {
         self.execute_request("POST", url, |client| {
-            let mut request_headers = self.headers(headers);
+            let mut request_headers = self.headers(Some(headers));
             request_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
             client.post(url.clone()).headers(request_headers).body(body)
         })
@@ -207,7 +207,7 @@ impl HttpInfra for ForgeHttpInfra {
     async fn post_with_headers(
         &self,
         url: &Url,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
         body: Bytes,
     ) -> anyhow::Result<Response> {
         self.post_with_headers(url, headers, body).await

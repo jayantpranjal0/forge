@@ -87,7 +87,7 @@ where
 
 pub async fn into_chat_completion_message_post<Response, H>(
     url: Url,
-    headers: Option<HeaderMap>,
+    headers: HeaderMap,
     body: Bytes,
     http_client: &H,
 ) -> anyhow::Result<ChatCompletionMessage>

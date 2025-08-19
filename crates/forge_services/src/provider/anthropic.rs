@@ -159,7 +159,7 @@ mod tests {
         async fn post_with_headers(
             &self,
             _url: &Url,
-            _headers: Option<HeaderMap>,
+            _headers: HeaderMap,
             _body: Bytes,
         ) -> anyhow::Result<reqwest::Response> {
             unimplemented!()

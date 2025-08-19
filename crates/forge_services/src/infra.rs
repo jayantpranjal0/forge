@@ -189,7 +189,7 @@ pub trait HttpInfra: Send + Sync + 'static {
     async fn post_with_headers(
         &self,
         url: &Url,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
         body: bytes::Bytes,
     ) -> anyhow::Result<Response>;
     async fn delete(&self, url: &Url) -> anyhow::Result<Response>;

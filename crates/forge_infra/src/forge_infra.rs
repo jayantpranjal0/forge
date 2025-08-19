@@ -248,7 +248,7 @@ impl HttpInfra for ForgeInfra {
     async fn post_with_headers(
         &self,
         url: &Url,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
         body: Bytes,
     ) -> anyhow::Result<Response> {
         self.http_service

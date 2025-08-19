@@ -45,7 +45,7 @@ impl<H: HttpClientService> OpenAIProvider<H> {
         request = pipeline.transform(request);
 
         let url = join_url(self.provider.to_base_url().as_str(), "chat/completions")?;
-        let headers = create_headers(self.get_headers());
+        let mut headers = create_headers(self.get_headers());
 
         info!(
             url = %url,
@@ -60,9 +60,13 @@ impl<H: HttpClientService> OpenAIProvider<H> {
             serde_json::to_vec(&request).with_context(|| "Failed to serialize request")?;
 
         if !request.stream.unwrap_or(false) {
+            headers.insert(
+                reqwest::header::CONTENT_TYPE,
+                "application/json".parse().unwrap(),
+            );
             let message = into_chat_completion_message_post::<Response, _>(
                 url.clone(),
-                Some(headers),
+                headers,
                 json_bytes.into(),
                 self.http.as_ref(),
             )
@@ -191,7 +195,7 @@ mod tests {
         async fn post_with_headers(
             &self,
             _url: &reqwest::Url,
-            _headers: Option<HeaderMap>,
+            _headers: HeaderMap,
             _body: Bytes,
         ) -> anyhow::Result<reqwest::Response> {
             unimplemented!()

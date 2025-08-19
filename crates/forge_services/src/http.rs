@@ -28,7 +28,7 @@ impl<T: HttpInfra> HttpClientService for HttpClient<T> {
     async fn post_with_headers(
         &self,
         url: &Url,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
         body: bytes::Bytes,
     ) -> anyhow::Result<Response> {
         self.0.post_with_headers(url, headers, body).await
