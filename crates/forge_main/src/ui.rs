@@ -243,7 +243,7 @@ impl<A: API + 'static, F: Fn() -> A> UI<A, F> {
         let api = self.api.clone();
         tokio::spawn(async move { api.models().await });
         let api = self.api.clone();
-        tokio::spawn(async move { api.tools().await });
+        tokio::spawn(async move { api.tool_names().await });
     }
 
     async fn handle_subcommands(&mut self, subcommand: TopLevelCommand) -> anyhow::Result<()> {
