@@ -680,14 +680,17 @@ impl Tools {
         let mut definitions = Vec::new();
 
         let shorthands_str = self
-            .get_str("shorthands")
-            .expect("shorthands property should be defined for all variants");
+            .get_str("shorthands");
 
-        let shorthand_names: Vec<&str> = shorthands_str
-            .split(',')
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-            .collect();
+        let shorthand_names: Vec<&str> = if let Some(shorthands_str) = shorthands_str {
+            shorthands_str
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect()
+        } else {
+            Vec::new()
+        };
 
         for shorthand_name in shorthand_names {
             definitions.push(
