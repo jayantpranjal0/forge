@@ -77,7 +77,10 @@ impl ForgeHttpInfra {
         body: Bytes,
     ) -> anyhow::Result<Response> {
         self.execute_request("POST", url, |client| {
-            client.post(url.clone()).headers(self.headers(headers)).body(body)
+            client
+                .post(url.clone())
+                .headers(self.headers(headers))
+                .body(body)
         })
         .await
     }
