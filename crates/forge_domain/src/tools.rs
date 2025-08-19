@@ -38,36 +38,36 @@ use crate::{
 #[serde(tag = "name", content = "arguments", rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum Tools {
-    #[strum(props(shorthands = "fs_read,read"))]
+    #[strum(props(shorthands = "read"))]
     ForgeToolFsRead(FSRead),
-    #[strum(props(shorthands = "fs_create,create,write"))]
+    #[strum(props(shorthands = "write"))]
     ForgeToolFsCreate(FSWrite),
-    #[strum(props(shorthands = "fs_search,search,find"))]
+    #[strum(props(shorthands = "find"))]
     ForgeToolFsSearch(FSSearch),
-    #[strum(props(shorthands = "fs_remove,remove,delete"))]
+    #[strum(props(shorthands = "delete"))]
     ForgeToolFsRemove(FSRemove),
-    #[strum(props(shorthands = "fs_patch,patch,edit"))]
+    #[strum(props(shorthands = "edit"))]
     ForgeToolFsPatch(FSPatch),
-    #[strum(props(shorthands = "fs_undo,undo,revert"))]
+    #[strum(props(shorthands = "revert"))]
     ForgeToolFsUndo(FSUndo),
-    #[strum(props(shorthands = "shell,sh,exec"))]
+    #[strum(props(shorthands = "exec"))]
     ForgeToolProcessShell(Shell),
-    #[strum(props(shorthands = "fetch,get,download"))]
+    #[strum(props(shorthands = "fetch"))]
     ForgeToolNetFetch(NetFetch),
-    #[strum(props(shorthands = "followup,follow"))]
+    #[strum(props(shorthands = "followup"))]
     ForgeToolFollowup(Followup),
-    #[strum(props(shorthands = "tooL_completion,completion,done"))]
     ForgeToolAttemptCompletion(AttemptCompletion),
-    #[strum(props(shorthands = "task_add,add_task"))]
+    #[strum(props(shorthands = "add_task"))]
     ForgeToolTaskListAppend(TaskListAppend),
-    #[strum(props(shorthands = "task_add_multiple,add_tasks"))]
+    #[strum(props(shorthands = "add_tasks"))]
     ForgeToolTaskListAppendMultiple(TaskListAppendMultiple),
-    #[strum(props(shorthands = "task_update,update_task"))]
+    #[strum(props(shorthands = "update_task"))]
     ForgeToolTaskListUpdate(TaskListUpdate),
-    #[strum(props(shorthands = "task_list,list_tasks"))]
+    #[strum(props(shorthands = "list_tasks"))]
     ForgeToolTaskListList(TaskListList),
-    #[strum(props(shorthands = "task_clear,clear_tasks"))]
+    #[strum(props(shorthands = "clear_tasks"))]
     ForgeToolTaskListClear(TaskListClear),
+    #[strum(props(shorthands = "create_plan"))]
     ForgeToolPlanCreate(PlanCreate),
 }
 
