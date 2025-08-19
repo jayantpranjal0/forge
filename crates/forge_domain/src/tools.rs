@@ -679,8 +679,7 @@ impl Tools {
     pub fn all_definitions(&self) -> Vec<ToolDefinition> {
         let mut definitions = Vec::new();
 
-        let shorthands_str = self
-            .get_str("shorthands");
+        let shorthands_str = self.get_str("shorthands");
 
         let shorthand_names: Vec<&str> = if let Some(shorthands_str) = shorthands_str {
             shorthands_str

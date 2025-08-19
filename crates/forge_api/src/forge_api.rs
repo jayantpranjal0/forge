@@ -47,6 +47,11 @@ impl<A: Services, F: CommandInfra> API for ForgeAPI<A, F> {
         forge_app.list_tools().await
     }
 
+    async fn tool_names(&self) -> anyhow::Result<Vec<String>> {
+        let forge_app = ForgeApp::new(self.services.clone());
+        forge_app.list_tool_names().await
+    }
+
     async fn models(&self) -> Result<Vec<Model>> {
         Ok(self
             .services
