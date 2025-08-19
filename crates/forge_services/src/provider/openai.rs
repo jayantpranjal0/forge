@@ -40,7 +40,7 @@ impl<H: HttpClientService> OpenAIProvider<H> {
         model: &ModelId,
         context: ChatContext,
     ) -> ResultStream<ChatCompletionMessage, anyhow::Error> {
-        let mut request = Request::from(context).model(model.clone()).stream(false);
+        let mut request = Request::from(context).model(model.clone()).stream(true);
         let mut pipeline = ProviderPipeline::new(&self.provider);
         request = pipeline.transform(request);
 
@@ -59,21 +59,21 @@ impl<H: HttpClientService> OpenAIProvider<H> {
         let json_bytes =
             serde_json::to_vec(&request).with_context(|| "Failed to serialize request")?;
 
+        if !request.stream.unwrap_or(false) {
+                let message = into_chat_completion_message_post::<Response, _>(
+                    url.clone(),
+                    Some(headers),
+                    json_bytes.into(),
+                    self.http.as_ref(),
+                )
+                .await?;
+            return Ok(Box::pin(tokio_stream::once(Ok(message))));
+        }
         let es = self
             .http
             .eventsource(&url, Some(headers.clone()), json_bytes.clone().into())
             .await
             .with_context(|| format_http_context(None, "POST", &url))?;
-        if !request.stream.unwrap_or(false) {
-            let message = into_chat_completion_message_post::<Response, _>(
-                url.clone(),
-                Some(headers),
-                json_bytes.into(),
-                self.http.as_ref(),
-            )
-            .await?;
-            return Ok(Box::pin(tokio_stream::once(Ok(message))));
-        }
 
         let stream = into_chat_completion_message::<Response>(url, es);
 

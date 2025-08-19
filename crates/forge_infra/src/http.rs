@@ -4,7 +4,7 @@ use anyhow::Context;
 use bytes::Bytes;
 use forge_domain::{HttpConfig, TlsBackend, TlsVersion};
 use forge_services::HttpInfra;
-use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
+use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, CONTENT_TYPE};
 use reqwest::redirect::Policy;
 use reqwest::{Client, Response, StatusCode, Url};
 use reqwest_eventsource::{EventSource, RequestBuilderExt};
@@ -72,10 +72,10 @@ impl ForgeHttpInfra {
 
     async fn post(&self, url: &Url, body: Bytes) -> anyhow::Result<Response> {
         self.execute_request("POST", url, |client| {
-            let mut request_headers = self.headers(None);
-            request_headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-
-            client.post(url.clone()).headers(request_headers).body(body)
+            client
+                .post(url.clone())
+                .headers(self.headers(None))
+                .body(body)
         })
         .await
     }
@@ -88,8 +88,7 @@ impl ForgeHttpInfra {
     ) -> anyhow::Result<Response> {
         self.execute_request("POST", url, |client| {
             let mut request_headers = self.headers(headers);
-            request_headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-
+            request_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
             client.post(url.clone()).headers(request_headers).body(body)
         })
         .await
