@@ -172,6 +172,7 @@ mod tests {
             top_provider: None,
             per_request_limits: None,
             supported_parameters: None,
+            desired_context_length: None,
         };
 
         assert_eq!(actual.id, expected.id);
