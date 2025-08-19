@@ -88,7 +88,6 @@ impl ForgeHttpInfra {
     ) -> anyhow::Result<Response> {
         self.execute_request("POST", url, |client| {
             let mut request_headers = self.headers(Some(headers));
-            request_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
             client.post(url.clone()).headers(request_headers).body(body)
         })
         .await
