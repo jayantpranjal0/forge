@@ -156,6 +156,15 @@ mod tests {
             unimplemented!()
         }
 
+        async fn post_with_headers(
+            &self,
+            _url: &Url,
+            _headers: Option<HeaderMap>,
+            _body: Bytes,
+        ) -> anyhow::Result<reqwest::Response> {
+            unimplemented!()
+        }
+
         async fn delete(&self, _url: &Url) -> anyhow::Result<reqwest::Response> {
             unimplemented!()
         }

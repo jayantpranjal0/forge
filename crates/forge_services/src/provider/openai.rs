@@ -10,7 +10,7 @@ use reqwest::header::AUTHORIZATION;
 use tracing::{debug, info};
 
 use crate::provider::client::{create_headers, join_url};
-use crate::provider::event::into_chat_completion_message;
+use crate::provider::event::{into_chat_completion_message, into_chat_completion_message_post};
 use crate::provider::utils::{format_http_context, sanitize_headers};
 
 #[derive(Clone)]
@@ -40,7 +40,7 @@ impl<H: HttpClientService> OpenAIProvider<H> {
         model: &ModelId,
         context: ChatContext,
     ) -> ResultStream<ChatCompletionMessage, anyhow::Error> {
-        let mut request = Request::from(context).model(model.clone()).stream(true);
+        let mut request = Request::from(context).model(model.clone()).stream(false);
         let mut pipeline = ProviderPipeline::new(&self.provider);
         request = pipeline.transform(request);
 
@@ -61,9 +61,19 @@ impl<H: HttpClientService> OpenAIProvider<H> {
 
         let es = self
             .http
-            .eventsource(&url, Some(headers), json_bytes.into())
+            .eventsource(&url, Some(headers.clone()), json_bytes.clone().into())
             .await
             .with_context(|| format_http_context(None, "POST", &url))?;
+        if !request.stream.unwrap_or(false) {
+            let message = into_chat_completion_message_post::<Response, _>(
+                url.clone(),
+                Some(headers),
+                json_bytes.into(),
+                self.http.as_ref(),
+            )
+            .await?;
+            return Ok(Box::pin(tokio_stream::once(Ok(message))));
+        }
 
         let stream = into_chat_completion_message::<Response>(url, es);
 
@@ -173,6 +183,15 @@ mod tests {
         async fn post(
             &self,
             _url: &reqwest::Url,
+            _body: Bytes,
+        ) -> anyhow::Result<reqwest::Response> {
+            unimplemented!()
+        }
+
+        async fn post_with_headers(
+            &self,
+            _url: &reqwest::Url,
+            _headers: Option<HeaderMap>,
             _body: Bytes,
         ) -> anyhow::Result<reqwest::Response> {
             unimplemented!()

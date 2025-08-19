@@ -245,6 +245,17 @@ impl HttpInfra for ForgeInfra {
         self.http_service.post(url, body).await
     }
 
+    async fn post_with_headers(
+        &self,
+        url: &Url,
+        headers: Option<HeaderMap>,
+        body: Bytes,
+    ) -> anyhow::Result<Response> {
+        self.http_service
+            .post_with_headers(url, headers, body)
+            .await
+    }
+
     async fn delete(&self, url: &Url) -> anyhow::Result<Response> {
         self.http_service.delete(url).await
     }
